@@ -1,0 +1,24 @@
+TradingView Alert for bot 'binance_main':
+{
+  "action": "{{strategy.order.action}}",
+  "bot_id": "DFjFujnX",
+  "order_size": "100%",
+  "position_size": "{{strategy.position_size}}",
+  "schema": "2",
+  "ticker": "{{ticker}}",
+  "timestamp": "{{time}}"
+}
+
+
+TradingView Alert for bot 'uniswap_bot':
+{
+  "action": "{{strategy.order.action}}",
+  "bot_id": "UNI12345",
+  "order_size": "100%",
+  "position_size": "{{strategy.position_size}}",
+  "schema": "2",
+  "ticker": "{{ticker}}",
+  "timestamp": "{{time}}"
+}
+
+
