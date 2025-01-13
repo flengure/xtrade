@@ -1,0 +1,16 @@
+[server]
+port = 7762
+bind = "127.0.0.1"
+state = "state.json"
+
+[web]
+enabled = true
+port = 7763
+bind = "0.0.0.0"
+path = "src/webui/dist"
+
+[online]
+url = "http://localhost:7762"
+
+[offline]
+state = "state.json"

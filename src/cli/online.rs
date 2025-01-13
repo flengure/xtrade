@@ -1,23 +1,27 @@
 // src/cli/online.rs
+use crate::api::{
+    add_bot, add_listener, delete_bot, delete_listener, fetch_bot, fetch_bots, fetch_listener,
+    fetch_listeners, update_bot, update_listener,
+};
 use crate::cli::{Commands, OnlineArgs};
-use config::{Config, File};
+use crate::utils::config::AppConfig;
 use log::info;
 use reqwest::blocking::Client;
-use serde_json::Value;
 
 /// Run the application in online mode
 pub fn online_mode(args: OnlineArgs) {
-    // Load settings from cli.toml
-    let settings = Config::builder()
-        .add_source(File::with_name("cli").required(false)) // Load cli.toml
-        .build()
-        .unwrap();
+    // Load configuration using AppConfig
+    let config = AppConfig::load(None).unwrap_or_else(|err| {
+        log::warn!(
+            "Failed to load configuration file: {}. Using defaults.",
+            err
+        );
+        AppConfig::default()
+    });
+    log::debug!("Loaded configuration: {:?}", config);
 
-    // Use the --url argument or fallback to the default in config.toml
-    let default_url = settings
-        .get_string("cli.url")
-        .unwrap_or_else(|_| "http://localhost:8080".to_string());
-    let server_url = args.url.unwrap_or(default_url);
+    // Use the `online` section of the config for URL fallback
+    let server_url = args.url.unwrap_or_else(|| config.online.url);
 
     info!("Running in online mode with server URL: {}", server_url);
 
@@ -45,66 +49,34 @@ pub fn handle_online_mode(url: &str, command: Commands) {
             private_key,
             contract_address,
         } => {
-            let bot_data = serde_json::json!({
-                "name": name,
-                "exchange": exchange,
-                "api_key": api_key,
-                "api_secret": api_secret,
-                "rest_endpoint": rest_endpoint,
-                "rpc_endpoint": rpc_endpoint,
-                "webhook_secret": webhook_secret,
-                "trading_fee": trading_fee.unwrap_or(0.1),
-                "private_key": private_key,
-                "contract_address": contract_address,
-            });
-
-            match client.post(&format!("{}/bots", url)).json(&bot_data).send() {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Bot added successfully.");
-                    } else {
-                        println!("Failed to add bot: {}", response.text().unwrap_or_default());
-                    }
-                }
+            match add_bot(
+                &client,
+                &url,
+                name,
+                exchange,
+                api_key,
+                api_secret,
+                rest_endpoint,
+                rpc_endpoint,
+                webhook_secret,
+                trading_fee,
+                private_key,
+                contract_address,
+            ) {
+                Ok(_) => println!("Bot added successfully."),
                 Err(err) => println!("Error: {}", err),
             }
         }
 
-        Commands::ListBots => match client.get(&format!("{}/bots", url)).send() {
-            Ok(response) => {
-                if response.status().is_success() {
-                    let bots: Value = response.json().unwrap_or_else(
-                        |_| serde_json::json!({ "error": "Failed to parse response." }),
-                    );
-                    println!("Bots: {}", bots);
-                } else {
-                    println!(
-                        "Failed to fetch bots: {}",
-                        response.text().unwrap_or_default()
-                    );
-                }
-            }
-            Err(err) => println!("Error: {}", err),
+        Commands::ListBots => match fetch_bots(&client, &url) {
+            Ok(bots) => println!("Bots: {}", bots),
+            Err(err) => println!("Failed to fetch bots: {}", err),
         },
 
-        Commands::GetBot { bot_id } => {
-            match client.get(&format!("{}/bots/{}", url, bot_id)).send() {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        let bot: Value = response.json().unwrap_or_else(
-                            |_| serde_json::json!({ "error": "Failed to parse response." }),
-                        );
-                        println!("Bot: {}", bot);
-                    } else {
-                        println!(
-                            "Failed to fetch bot: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
-                Err(err) => println!("Error: {}", err),
-            }
-        }
+        Commands::GetBot { bot_id } => match fetch_bot(&client, &url, &bot_id) {
+            Ok(bot) => println!("Bot: {}", bot),
+            Err(err) => println!("Failed to fetch bot: {}", err),
+        },
 
         Commands::UpdateBot {
             bot_id,
@@ -119,126 +91,49 @@ pub fn handle_online_mode(url: &str, command: Commands) {
             private_key,
             contract_address,
         } => {
-            let bot_data = serde_json::json!({
-                "name": name,
-                "exchange": exchange,
-                "api_key": api_key,
-                "api_secret": api_secret,
-                "rest_endpoint": rest_endpoint,
-                "rpc_endpoint": rpc_endpoint,
-                "webhook_secret": webhook_secret,
-                "trading_fee": trading_fee,
-                "private_key": private_key,
-                "contract_address": contract_address,
-            });
-
-            match client
-                .put(&format!("{}/bots/{}", url, bot_id))
-                .json(&bot_data)
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Bot updated successfully.");
-                    } else {
-                        println!(
-                            "Failed to update bot: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
+            match update_bot(
+                &client,
+                &url,
+                &bot_id,
+                name,
+                exchange,
+                api_key,
+                api_secret,
+                rest_endpoint,
+                rpc_endpoint,
+                webhook_secret,
+                trading_fee,
+                private_key,
+                contract_address,
+            ) {
+                Ok(_) => println!("Bot updated successfully."),
                 Err(err) => println!("Error: {}", err),
             }
         }
 
-        Commands::DeleteBot { bot_id } => {
-            match client.delete(&format!("{}/bots/{}", url, bot_id)).send() {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Bot deleted successfully.");
-                    } else {
-                        println!(
-                            "Failed to delete bot: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
-                Err(err) => println!("Error: {}", err),
-            }
-        }
+        Commands::DeleteBot { bot_id } => match delete_bot(&client, &url, &bot_id) {
+            Ok(_) => println!("Bot deleted successfully."),
+            Err(err) => println!("Error: {}", err),
+        },
 
         Commands::AddListener {
             bot_id,
             service,
             secret,
             msg,
-        } => {
-            let listener_data = serde_json::json!({
-                "bot_id": bot_id,
-                "service": service,
-                "secret": secret,
-                "msg": msg,
-            });
+        } => match add_listener(&client, &url, bot_id, service, secret, msg) {
+            Ok(_) => println!("Listener added successfully."),
+            Err(err) => println!("Error: {}", err),
+        },
 
-            match client
-                .post(&format!("{}/listeners", url))
-                .json(&listener_data)
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Listener added successfully.");
-                    } else {
-                        println!(
-                            "Failed to add listener: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
-                Err(err) => println!("Error: {}", err),
-            }
-        }
-
-        Commands::ListListeners { bot_id } => {
-            match client
-                .get(&format!("{}/bots/{}/listeners", url, bot_id))
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        let listeners: Value = response.json().unwrap_or_else(
-                            |_| serde_json::json!({ "error": "Failed to parse response." }),
-                        );
-                        println!("Listeners: {}", listeners);
-                    } else {
-                        println!(
-                            "Failed to fetch listeners: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
-                Err(err) => println!("Error: {}", err),
-            }
-        }
+        Commands::ListListeners { bot_id } => match fetch_listeners(&client, &url, &bot_id) {
+            Ok(listeners) => println!("Listeners: {}", listeners),
+            Err(err) => println!("Failed to fetch listeners: {}", err),
+        },
 
         Commands::GetListener { listener_id } => {
-            match client
-                .get(&format!("{}/listeners/{}", url, listener_id))
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        let listener: Value = response.json().unwrap_or_else(
-                            |_| serde_json::json!({ "error": "Failed to parse response." }),
-                        );
-                        println!("Listener: {}", listener);
-                    } else {
-                        println!(
-                            "Failed to fetch listener: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
+            match fetch_listener(&client, &url, &listener_id) {
+                Ok(listener) => println!("Listener: {}", listener),
                 Err(err) => println!("Error: {}", err),
             }
         }
@@ -248,47 +143,14 @@ pub fn handle_online_mode(url: &str, command: Commands) {
             service,
             secret,
             msg,
-        } => {
-            let listener_data = serde_json::json!({
-                "service": service,
-                "secret": secret,
-                "msg": msg,
-            });
-
-            match client
-                .put(&format!("{}/listeners/{}", url, listener_id))
-                .json(&listener_data)
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Listener updated successfully.");
-                    } else {
-                        println!(
-                            "Failed to update listener: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
-                Err(err) => println!("Error: {}", err),
-            }
-        }
+        } => match update_listener(&client, &url, &listener_id, service, secret, msg) {
+            Ok(_) => println!("Listener updated successfully."),
+            Err(err) => println!("Error: {}", err),
+        },
 
         Commands::DeleteListener { listener_id } => {
-            match client
-                .delete(&format!("{}/listeners/{}", url, listener_id))
-                .send()
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        println!("Listener deleted successfully.");
-                    } else {
-                        println!(
-                            "Failed to delete listener: {}",
-                            response.text().unwrap_or_default()
-                        );
-                    }
-                }
+            match delete_listener(&client, &url, &listener_id) {
+                Ok(_) => println!("Listener deleted successfully."),
                 Err(err) => println!("Error: {}", err),
             }
         }

@@ -3,25 +3,25 @@ use crate::app_state::AppState;
 use crate::cli::Commands;
 use crate::cli::OfflineArgs;
 use crate::models::{Bot, Listener};
-use config::{Config, File};
+use crate::utils::config::AppConfig; // Import the AppConfig
 use serde_json::Value;
 
 pub fn offline_mode(args: OfflineArgs) {
-    // Load settings from config.toml
-    let settings = Config::builder()
-        .add_source(File::with_name("cli").required(false)) // Load cli.toml
-        .build()
-        .unwrap();
+    // Load application configuration or fallback to defaults
+    let config = AppConfig::load(None).unwrap_or_else(|err| {
+        log::warn!(
+            "Failed to load configuration file: {}. Using defaults.",
+            err
+        );
+        AppConfig::default()
+    });
 
-    // Fallback to default in config.toml if --state is not provided
-    let default_state = settings
-        .get_string("cli.state")
-        .unwrap_or_else(|_| "state.json".to_string());
-    let state_file = args.state.unwrap_or(default_state);
+    // Use the configured offline state or override with CLI argument
+    let state_file = args.state.unwrap_or_else(|| config.offline.state.clone());
 
     log::info!("Using state file: {}", state_file);
 
-    // Load or initialize AppState
+    // Load or initialize the application state
     let mut app_state =
         AppState::load_state_from_file(&state_file).unwrap_or_else(|_| AppState::default());
 

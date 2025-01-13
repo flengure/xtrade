@@ -1,0 +1,12 @@
+# Trunk.toml
+[build]
+# (Optional) if you want to override certain trunk build settings, e.g., file hashing
+
+[[copy]]
+# Copy everything from `static/` into the final output dir
+# so it ends up in the same place as the compiled WASM + JS.
+from = "static"
+to = "."
+
+# If your main HTML isn't literally named `index.html`, you can rename it here
+# or just keep it named `index.html` but stored in the `static/` folder.

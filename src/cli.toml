@@ -1,9 +1,0 @@
-[online]
-url = "http://localhost:8080" # REST API endpoint for server
-
-[offline]
-state = "state.json" # State file used in offline mode
-
-[last]
-bot_id = ""      # Last bot operated on
-listener_id = "" # Last listener operated on

@@ -1,7 +1,0 @@
-[server]
-port = 8080
-state = "state.json"
-
-[defaults]
-trading_fee = 0.1
-webhook_secret = "super_secure_secret"

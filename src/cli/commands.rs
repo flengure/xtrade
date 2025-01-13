@@ -60,11 +60,11 @@ pub struct OfflineArgs {
 #[derive(Debug, Parser)]
 pub struct ServerArgs {
     /// Specify the port for the server
-    #[arg(long, default_value = "8080", value_parser = validate_port)]
+    #[arg(long, value_parser = validate_port)]
     pub port: Option<u16>, // Default value and validated for range
 
     /// Specify the bind address for the server
-    #[arg(long, default_value = "0.0.0.0", value_parser = validate_bind_address)]
+    #[arg(long, value_parser = validate_bind_address)]
     pub bind: Option<String>, // Default value and validated for correctness
 
     /// Specify the state file for the server
