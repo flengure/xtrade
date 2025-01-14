@@ -1,6 +1,7 @@
 mod api;
 mod app_state;
 mod cli;
+mod errors;
 mod models;
 mod services;
 mod utils;

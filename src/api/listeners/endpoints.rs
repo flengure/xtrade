@@ -1,7 +1,8 @@
 // src/api/listeners.rs
 
 use crate::app_state::AppState;
-use crate::models::Listener;
+use crate::errors::ApiError;
+use crate::models::{Bot, Listener};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -10,14 +11,14 @@ use std::sync::Mutex;
 async fn get_listeners(
     data: web::Data<Mutex<AppState>>,
     bot_id: web::Path<String>,
-) -> impl Responder {
+) -> Result<impl Responder, ApiError> {
     let state = data.lock().unwrap();
 
     if let Some(bot) = state.bots.get(&bot_id.into_inner()) {
         return HttpResponse::Ok().json(&bot.listeners);
     }
-
-    HttpResponse::NotFound().body("Bot not found")
+    Err(ApiError::BotNotFound)
+    //HttpResponse::NotFound().body("Bot not found")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

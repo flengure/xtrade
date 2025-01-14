@@ -1,5 +1,19 @@
 {
   "bots": {
+    "7e1e5cb1-8b10-4915-bf22-f6e3399b5840": {
+      "bot_id": "7e1e5cb1-8b10-4915-bf22-f6e3399b5840",
+      "name": "TestBot",
+      "exchange": "Binance",
+      "api_key": null,
+      "api_secret": null,
+      "rest_endpoint": null,
+      "rpc_endpoint": null,
+      "webhook_secret": null,
+      "trading_fee": 0.1,
+      "private_key": null,
+      "contract_address": null,
+      "listeners": []
+    },
     "bot123": {
       "bot_id": "bot123",
       "name": "NewName",

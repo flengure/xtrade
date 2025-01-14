@@ -38,6 +38,7 @@ pub fn handle_online_mode(url: &str, command: Commands) {
 
     match command {
         Commands::AddBot {
+            bot_id,
             name,
             exchange,
             api_key,

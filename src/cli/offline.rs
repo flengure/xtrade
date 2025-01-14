@@ -2,8 +2,9 @@
 use crate::app_state::AppState;
 use crate::cli::Commands;
 use crate::cli::OfflineArgs;
-use crate::models::{Bot, Listener};
+use crate::models::{BotInsert, BotUpdate, Listener};
 use crate::utils::config::AppConfig; // Import the AppConfig
+use log::{error, info};
 use serde_json::Value;
 
 pub fn offline_mode(args: OfflineArgs) {
@@ -22,20 +23,20 @@ pub fn offline_mode(args: OfflineArgs) {
     log::info!("Using state file: {}", state_file);
 
     // Load or initialize the application state
-    let mut app_state =
-        AppState::load_state_from_file(&state_file).unwrap_or_else(|_| AppState::default());
+    let mut app_state = AppState::load(Some(&state_file)).unwrap_or_else(|_| AppState::default());
 
     if let Some(command) = args.command {
-        handle_offline_mode(command, &mut app_state, &state_file);
+        handle_offline_mode(command, &mut app_state);
     } else {
         println!("No command provided for offline mode.");
     }
 }
 
 /// Handle CLI commands in offline mode
-pub fn handle_offline_mode(command: Commands, app_state: &mut AppState, state_file: &str) {
+pub fn handle_offline_mode(command: Commands, app_state: &mut AppState) {
     match command {
         Commands::AddBot {
+            bot_id,
             name,
             exchange,
             api_key,
@@ -47,8 +48,8 @@ pub fn handle_offline_mode(command: Commands, app_state: &mut AppState, state_fi
             private_key,
             contract_address,
         } => {
-            let bot = Bot {
-                bot_id: uuid::Uuid::new_v4().to_string(),
+            match app_state.create_bot(BotInsert {
+                bot_id: Some(bot_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string())),
                 name,
                 exchange,
                 api_key,
@@ -59,23 +60,11 @@ pub fn handle_offline_mode(command: Commands, app_state: &mut AppState, state_fi
                 trading_fee,
                 private_key,
                 contract_address,
-                listeners: Vec::new(),
-            };
-            let bot_id = app_state.add_bot(bot);
-            app_state.save_state_to_file(state_file);
-            println!("Bot added successfully with ID: {}", bot_id);
-        }
-
-        Commands::ListBots => {
-            for bot in app_state.list_bots() {
-                println!("{:?}", bot);
+            }) {
+                Ok(bot) => info!("Success, added Bot with ID: {}", bot.bot_id),
+                Err(err) => error!("Error: {}", err),
             }
         }
-
-        Commands::GetBot { bot_id } => match app_state.get_bot(&bot_id) {
-            Some(bot) => println!("{:?}", bot),
-            None => println!("Error: Bot with ID {} not found.", bot_id),
-        },
 
         Commands::UpdateBot {
             bot_id,
@@ -90,57 +79,39 @@ pub fn handle_offline_mode(command: Commands, app_state: &mut AppState, state_fi
             private_key,
             contract_address,
         } => {
-            if let Some(mut bot) = app_state.get_bot(&bot_id).cloned() {
-                if let Some(name) = name {
-                    bot.name = name;
-                }
-                if let Some(exchange) = exchange {
-                    bot.exchange = exchange;
-                }
-                if let Some(api_key) = api_key {
-                    bot.api_key = Some(api_key);
-                }
-                if let Some(api_secret) = api_secret {
-                    bot.api_secret = Some(api_secret);
-                }
-                if let Some(rest_endpoint) = rest_endpoint {
-                    bot.rest_endpoint = Some(rest_endpoint);
-                }
-                if let Some(rpc_endpoint) = rpc_endpoint {
-                    bot.rpc_endpoint = Some(rpc_endpoint);
-                }
-                if let Some(webhook_secret) = webhook_secret {
-                    bot.webhook_secret = Some(webhook_secret);
-                }
-                if let Some(trading_fee) = trading_fee {
-                    bot.trading_fee = Some(trading_fee);
-                }
-                if let Some(private_key) = private_key {
-                    bot.private_key = Some(private_key);
-                }
-                if let Some(contract_address) = contract_address {
-                    bot.contract_address = Some(contract_address);
-                }
-
-                if app_state.update_bot(&bot_id, bot).is_ok() {
-                    app_state.save_state_to_file(state_file);
-                    println!("Bot updated successfully.");
-                } else {
-                    println!("Error: Failed to update bot.");
-                }
-            } else {
-                println!("Error: Bot with ID {} not found.", bot_id);
+            match app_state.update_bot(BotUpdate {
+                bot_id,
+                name,
+                exchange,
+                api_key,
+                api_secret,
+                rest_endpoint,
+                rpc_endpoint,
+                webhook_secret,
+                trading_fee,
+                private_key,
+                contract_address,
+            }) {
+                Ok(bot) => info!("Success, updated Bot with ID: {}", bot.bot_id),
+                Err(err) => error!("Error: {}", err),
             }
         }
 
-        Commands::DeleteBot { bot_id } => {
-            if app_state.delete_bot(&bot_id).is_ok() {
-                app_state.save_state_to_file(state_file);
-                println!("Bot deleted successfully.");
-            } else {
-                println!("Error: Bot with ID {} not found.", bot_id);
+        Commands::ListBots => {
+            for bot in app_state.list_bots() {
+                println!("{:?}", bot);
             }
         }
+
+        Commands::GetBot { bot_id } => match app_state.get_bot(&bot_id) {
+            Some(bot) => println!("{:?}", bot),
+            None => error!("Error: Bot with{} not found.", bot_id),
+        },
+
+        Commands::DeleteBot { bot_id } => match app_state.delete_bot(&bot_id) {
+            Ok(_) => info!("Bot deleted successfully."),
+            Err(err) => error!("Error: {}", err),
+        },
 
         Commands::AddListener {
             bot_id,

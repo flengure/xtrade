@@ -1,6 +1,34 @@
 // src/services/bots.rs
+use crate::errors::ApiError;
 use crate::models::Bot;
 use std::collections::HashMap;
+
+/// Adds a new bot to the collection and returns its ID.
+///
+/// # Arguments
+///
+/// * `bots` - A mutable reference to the bots collection.
+/// * `bot` - The Bot instance to be added.
+///
+/// # Returns
+///
+/// * `Ok(String)` containing the unique `bot_id` if the bot was added successfully.
+/// * `Err(BotError)` if a bot with the same `bot_id` already exists or if insertion fails.
+pub fn add_bot(bots: &mut HashMap<String, Bot>, bot: Bot) -> Result<String, BotError> {
+    let bot_id = bot.bot_id.clone();
+
+    // Check if the bot_id already exists in the HashMap
+    if bots.contains_key(&bot_id) {
+        return Err(ApiError::BotAlreadyExists(bot_id));
+    }
+
+    // Attempt to insert the new Bot
+    // `HashMap::insert` returns `None` if the key was not present
+    match bots.insert(bot_id.clone(), bot) {
+        None => Ok(bot_id),                       // Insertion successful
+        Some(_) => Err(ApiError::InsertionError), // This case should not occur due to the prior check
+    }
+}
 
 /// Create a new bot
 pub fn create_bot(bots: &mut HashMap<String, Bot>, bot: Bot) -> String {

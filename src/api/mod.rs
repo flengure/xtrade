@@ -1,16 +1,11 @@
 // src/api/mod.rs
+
 pub mod bots;
 pub mod listeners;
 
-use reqwest::blocking::Client;
-use reqwest::Method;
-
-pub use bots::clients::{
-    add_bot, add_listener, delete_bot, delete_listener, fetch_bot, fetch_bots, fetch_listener,
-    fetch_listeners, update_bot, update_listener,
-};
-
 use actix_web::web;
+use reqwest::{blocking::Client, Method};
+use serde::{Deserialize, Serialize};
 
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(bots::endpoints::get_bots);
@@ -42,4 +37,26 @@ pub fn send_request<T: serde::Serialize>(
     } else {
         request.send()
     }
+}
+
+/// REST API for bots and listeners
+pub use bots::clients::{
+    add_bot, add_listener, delete_bot, delete_listener, fetch_bot, fetch_bots, fetch_listener,
+    fetch_listeners, update_bot, update_listener,
+};
+
+/// Pagination parameters for lists
+#[derive(Deserialize)]
+pub struct Pagination {
+    pub page: Option<usize>,
+    pub limit: Option<usize>,
+    pub all: Option<bool>,
+}
+
+/// Unified API response structure.
+#[derive(Serialize)]
+pub struct ApiResponse<T> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<String>,
 }

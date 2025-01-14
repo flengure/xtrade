@@ -1,74 +1,121 @@
 // src/api/bots.rs
 
+use crate::api::Pagination;
 use crate::app_state::AppState;
-use crate::models::Bot;
+use crate::errors::ApiError;
+use crate::models::{Bot, BotInsert, BotUpdate};
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use uuid::Uuid;
+use validator::Validate;
 
-#[get("/bots")]
-async fn get_bots(data: web::Data<Mutex<AppState>>) -> impl Responder {
-    let state = data.lock().unwrap();
-    let bots: Vec<&Bot> = state.bots.values().collect();
-    HttpResponse::Ok().json(bots)
+#[derive(Serialize)]
+pub struct AddListenerResponse {
+    pub listener_id: String,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct BotInput {
+#[get("/bots")]
+async fn get_bots(
+    data: web::Data<Mutex<AppState>>,
+    query: web::Query<Pagination>,
+) -> Result<impl Responder, ApiError> {
+    let state = data.lock().unwrap();
+    let bots: Vec<Bot> = state.list_bots();
+
+    // Determine if pagination parameters are provided
+    let page = query.page.unwrap_or(1);
+    let limit = query.limit.unwrap_or(bots.len()); // If limit is not provided, return all bots
+
+    // Calculate start and end indices
+    let start = (page - 1) * limit;
+    let end = start + limit;
+
+    // Handle cases where start exceeds the number of bots
+    if start >= bots.len() {
+        return Ok(HttpResponse::Ok().json(ApiResponse::<Vec<&Bot>> {
+            success: true,
+            data: Some(Vec::new()),
+            error: None,
+        }));
+    }
+
+    // Adjust end index if it exceeds the number of bots
+    let end = if end > bots.len() { bots.len() } else { end };
+
+    // Slice the bots vector to get the paginated subset
+    let paginated_bots = bots[start..end].to_vec();
+
+    // Prepare the response
+    let api_response = ApiResponse {
+        success: true,
+        data: Some(paginated_bots),
+        error: None,
+    };
+
+    Ok(HttpResponse::Ok().json(api_response))
+}
+
+#[derive(Serialize)]
+pub struct AddBotResponse {
+    pub bot_id: String,
     pub name: String,
     pub exchange: String,
-    pub api_key: Option<String>,
-    pub api_secret: Option<String>,
-    pub rest_endpoint: Option<String>,
-    pub rpc_endpoint: Option<String>,
-    pub webhook_secret: Option<String>,
-    pub trading_fee: Option<f64>,
-    pub private_key: Option<String>,
-    pub contract_address: Option<String>,
+}
+
+// Unified APIResponse Struct
+#[derive(Serialize)]
+pub struct ApiResponse<T> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<String>,
 }
 
 #[post("/bots")]
 async fn add_bot(
     data: web::Data<Mutex<AppState>>,
-    bot_input: web::Json<BotInput>,
-) -> impl Responder {
+    bot_input: web::Json<BotInsert>,
+) -> Result<impl Responder, ApiError> {
     let mut state = data.lock().unwrap();
-    let bot_id = Uuid::new_v4().to_string();
 
-    let bot = Bot {
-        bot_id: bot_id.clone(),
-        name: bot_input.name.clone(),
-        exchange: bot_input.exchange.clone(),
-        api_key: bot_input.api_key.clone(),
-        api_secret: bot_input.api_secret.clone(),
-        rest_endpoint: bot_input.rest_endpoint.clone(),
-        rpc_endpoint: bot_input.rpc_endpoint.clone(),
-        webhook_secret: bot_input.webhook_secret.clone(),
-        trading_fee: bot_input.trading_fee.clone(),
-        private_key: bot_input.private_key.clone(),
-        contract_address: bot_input.contract_address.clone(),
-        listeners: Vec::new(), // Initialize with no listeners
+    // Validate the request
+    if let Err(validation_errors) = bot_input.validate() {
+        return Err(ApiError::InvalidInput(validation_errors.to_string()));
+    }
+
+    let bot = state.create_bot(bot_input.into_inner())?;
+
+    let api_response = ApiResponse {
+        success: true,
+        data: Some(bot.clone()),
+        error: None,
     };
 
-    state.bots.insert(bot_id.clone(), bot);
-    state.save_state_to_file("state.json");
+    // Prepare the Location header
+    let location = format!("/bots/{}", bot.bot_id);
 
-    HttpResponse::Created().body(format!("Bot added successfully with ID: {}", bot_id))
+    // Return 201 Created with Location header and JSON body
+    Ok(HttpResponse::Created()
+        .insert_header(("Location", location))
+        .json(api_response))
 }
 
 #[get("/bots/{bot_id}")]
 async fn get_bot_by_id(
     data: web::Data<Mutex<AppState>>,
     bot_id: web::Path<String>,
-) -> impl Responder {
+) -> Result<impl Responder, ApiError> {
     let state = data.lock().unwrap();
     let bot_id = bot_id.into_inner();
 
-    if let Some(bot) = state.bots.get(&bot_id) {
-        HttpResponse::Ok().json(bot)
+    if let Some(bot) = state.get_bot(&bot_id) {
+        let api_response = ApiResponse {
+            success: true,
+            data: Some(bot),
+            error: None,
+        };
+        Ok(HttpResponse::Ok().json(api_response))
     } else {
-        HttpResponse::NotFound().body("Bot not found")
+        Err(ApiError::BotNotFound)
     }
 }
 
@@ -76,38 +123,51 @@ async fn get_bot_by_id(
 async fn update_bot(
     data: web::Data<Mutex<AppState>>,
     bot_id: web::Path<String>,
-    bot_input: web::Json<BotInput>,
-) -> impl Responder {
-    let mut state = data.lock().unwrap();
+    bot_input: web::Json<BotUpdate>,
+) -> Result<impl Responder, ApiError> {
+    // Acquire the lock on AppState
+    let mut state = data.lock().map_err(|_| ApiError::InternalServerError)?;
 
-    if let Some(bot) = state.bots.get_mut(&bot_id.into_inner()) {
-        bot.name = bot_input.name.clone();
-        bot.exchange = bot_input.exchange.clone();
-        bot.api_key = bot_input.api_key.clone();
-        bot.api_secret = bot_input.api_secret.clone();
-        bot.rest_endpoint = bot_input.rest_endpoint.clone();
-        bot.rpc_endpoint = bot_input.rpc_endpoint.clone();
-        bot.webhook_secret = bot_input.webhook_secret.clone();
-        bot.trading_fee = bot_input.trading_fee.clone();
-        bot.private_key = bot_input.private_key.clone();
-        bot.contract_address = bot_input.contract_address.clone();
-        state.save_state_to_file("state.json");
-        return HttpResponse::Ok().body("Bot updated successfully");
+    // Extract and update the bot ID in the input
+    let mut updated_bot = bot_input.into_inner();
+    updated_bot.bot_id = bot_id.into_inner();
+
+    // Update the bot in the state
+    match state.update_bot(updated_bot) {
+        Ok(bot) => {
+            // Create the success response
+            let api_response = ApiResponse {
+                success: true,
+                data: Some(bot),
+                error: None,
+            };
+            Ok(HttpResponse::Ok().json(api_response))
+        }
+        Err(e) => Err(e), // Pass through the error
     }
-
-    HttpResponse::NotFound().body("Bot not found")
 }
 
 #[delete("/bots/{bot_id}")]
-async fn delete_bot(data: web::Data<Mutex<AppState>>, bot_id: web::Path<String>) -> impl Responder {
+async fn delete_bot(
+    data: web::Data<Mutex<AppState>>,
+    bot_id: web::Path<String>,
+) -> Result<impl Responder, ApiError> {
     let mut state = data.lock().unwrap();
 
     if state.bots.remove(&bot_id.into_inner()).is_some() {
+        // Persist the state
         state.save_state_to_file("state.json");
-        return HttpResponse::Ok().body("Bot deleted successfully");
-    }
 
-    HttpResponse::NotFound().body("Bot not found")
+        let api_response = ApiResponse::<String> {
+            success: true,
+            data: Some("Bot deleted successfully".into()),
+            error: None,
+        };
+
+        Ok(HttpResponse::Ok().json(api_response))
+    } else {
+        Err(ApiError::BotNotFound)
+    }
 }
 
 #[cfg(test)]
