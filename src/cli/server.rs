@@ -41,7 +41,7 @@ pub async fn server_mode(args: ServerArgs) -> std::io::Result<()> {
     );
 
     let app_state = web::Data::new(Mutex::new(
-        AppState::load_state_from_file(&state_file).unwrap_or_else(|_| AppState::default()),
+        AppState::load(Some(&state_file)).unwrap_or_else(|_| AppState::default()),
     ));
 
     // Create the API server

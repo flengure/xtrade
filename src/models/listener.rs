@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Listener {
     pub service: String, // Service type (e.g., TradingView)
     pub secret: String,  // Security secret for the webhook
-    pub msg: Value,      // Change msg to serde_json::Value
+    pub msg: String,     // Change msg to serde_json::Value
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +14,7 @@ pub struct ListenerInsert {
     pub service: String, // Service type (e.g., TradingView)
     #[serde(skip_serializing)]
     pub secret: Option<String>, // Security secret for the webhook
-    pub msg: Option<Value>, // Change msg to serde_json::Value
+    pub msg: Option<String>, // Change msg to serde_json::Value
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +24,7 @@ pub struct ListenerUpdate {
     pub service: Option<String>, // Service type (e.g., TradingView)
     #[serde(skip_serializing)]
     pub secret: Option<String>, // Security secret for the webhook
-    pub msg: Option<Value>,      // Change msg to serde_json::Value
+    pub msg: Option<String>,     // Change msg to serde_json::Value
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,7 +34,7 @@ pub struct ListenerView {
     pub service: Option<String>, // Service type (e.g., TradingView)
     #[serde(skip_serializing)]
     pub secret: Option<String>, // Security secret for the webhook
-    pub msg: Option<Value>,      // Change msg to serde_json::Value
+    pub msg: Option<String>,     // Change msg to serde_json::Value
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

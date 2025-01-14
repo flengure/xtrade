@@ -1,9 +1,9 @@
 // src/app_state.rs
-use crate::errors::{ApiError, LoadError};
+use crate::errors::{ApiError, ServerError};
 use crate::models::{
     Bot, BotInsert, BotUpdate, Listener, ListenerInsert, ListenerList, ListenerUpdate, ListenerView,
 };
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -37,6 +37,50 @@ impl Default for AppState {
 }
 
 impl AppState {
+    /// Loads the application state from a JSON file.
+    ///
+    /// # Arguments
+    ///
+    /// * `file_path` - An optional path to load the state file.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(AppState)` if the state is loaded successfully.
+    /// * `Err(LoadError)` if an error occurs during loading.
+    pub fn load<P: AsRef<Path>>(file_path: Option<P>) -> Result<AppState, ServerError> {
+        // Determine the file path based on the following priority:
+        // 1. Use the provided `file_path` if Some.
+        // 2. Else, use the `STATE_FILE` environment variable if set.
+        // 3. Else, use the `file` field if Some.
+        // 4. Else, default to "state.json".
+        let path = if let Some(p) = file_path {
+            p.as_ref().to_path_buf()
+        } else if let Ok(env_path) = std::env::var("STATE_FILE") {
+            PathBuf::from(env_path)
+        } else if let Some(ref p) = AppState::default().file {
+            p.clone()
+        } else {
+            PathBuf::from("state.json")
+        };
+
+        // Attempt to read the state file
+        let state_content =
+            std::fs::read_to_string(&path).map_err(|e| ServerError::FileReadError {
+                source: e,
+                path: path.clone(),
+            })?;
+
+        // Deserialize the JSON content into `AppState`
+        let mut state: AppState =
+            serde_json::from_str(&state_content).map_err(ServerError::JsonParseError)?;
+
+        // Update the file path field in the loaded state
+        state.file = Some(path.clone());
+
+        info!("State loaded from file: {:?}", &path);
+        Ok(state)
+    }
+
     /// Saves the current state to a JSON file.
     ///
     /// # Arguments
@@ -47,7 +91,7 @@ impl AppState {
     ///
     /// * `Ok(())` if the state is saved successfully.
     /// * `Err(LoadError)` if an error occurs during saving.
-    pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), LoadError> {
+    pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), ServerError> {
         // Determine the file path based on the following priority:
         // 1. Use the provided `file_path` if Some.
         // 2. Else, use the `self.file` field if Some.
@@ -57,20 +101,38 @@ impl AppState {
         } else if let Some(ref p) = self.file {
             p.clone()
         } else {
-            return Err(LoadError::NoFilePathProvided);
+            return Err(ServerError::NoFilePathProvided);
         };
 
         // Serialize the AppState to JSON
-        let state_json = serde_json::to_string_pretty(self).map_err(LoadError::JsonParseError)?;
+        let state_json = serde_json::to_string_pretty(self).map_err(ServerError::JsonParseError)?;
 
         // Write the JSON to the file
-        std::fs::write(&path, state_json).map_err(|e| LoadError::FileReadError {
+        std::fs::write(&path, state_json).map_err(|e| ServerError::FileReadError {
             source: e,
             path: path.clone(),
         })?;
 
         info!("State saved to file: {:?}", &path);
         Ok(())
+    }
+
+    /// Clears all bots
+    pub fn clear_bots(&mut self) {
+        self.bots.clear();
+        if let Err(err) = self.save::<PathBuf>(None) {
+            error!("Failed to save state after clearing bots: {}", err);
+        }
+    }
+
+    /// Clears all listeners from all bots
+    pub fn clear_listeners(&mut self) {
+        for bot in self.bots.values_mut() {
+            bot.listeners.clear();
+        }
+        if let Err(err) = self.save::<PathBuf>(None) {
+            error!("Failed to save state after clearing listeners: {}", err);
+        }
     }
 
     /// Inserts a new bot into the collection and returns the bot if successful.
@@ -197,7 +259,7 @@ impl AppState {
     ///
     /// * `Ok(())` if the bot was updated successfully.
     /// * `Err(ApiError)` if the bot does not exist or if saving the state fails.
-    pub fn args(&mut self, args: BotUpdate) -> Result<Bot, ApiError> {
+    pub fn update_bot(&mut self, args: BotUpdate) -> Result<Bot, ApiError> {
         // Check if the bot exists and get a mutable reference to it
         let updated_bot = match self.bots.get_mut(&args.bot_id) {
             None => return Err(ApiError::BotNotFound(args.bot_id.to_string())), // Bot not found
@@ -272,28 +334,57 @@ impl AppState {
         Ok(())
     }
 
-    /// Add a listener to a bot
-    pub fn add_listener(&mut self, args: ListenerInsert) -> Result<Listener, ApiError> {
-        if let Some(bot) = self.bots.get_mut(&args.bot_id) {
-            let listener_id = uuid::Uuid::new_v4().to_string();
-            let listener = Listener {
-                service: args.service,
-                secret: args.secret.unwrap_or_default(),
-                msg: args.msg.unwrap_or_default(),
-            };
+    /// Add a listener to a bot.
+    ///
+    /// This function adds a new listener to the specified bot. If the bot is not found or an error occurs during saving, an appropriate `ApiError` is returned.
+    ///
+    /// # Arguments
+    ///
+    /// - `args`: The parameters for the new listener, encapsulated in a `ListenerInsert` struct.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(ListenerView)`: A view of the newly added listener.
+    /// - `Err(ApiError)`: If the bot is not found or saving fails.
+    pub fn add_listener(&mut self, args: ListenerInsert) -> Result<ListenerView, ApiError> {
+        // Retrieve the bot by its ID
+        let bot = self
+            .bots
+            .get_mut(&args.bot_id)
+            .ok_or_else(|| ApiError::BotNotFound(args.bot_id.clone()))?;
 
-            match bot.listeners.insert(listener_id, listener.clone()) {
-                None => {
-                    // Save the state, propagating any errors as ApiError
-                    self.save::<PathBuf>(None)
-                        .map_err(|e| ApiError::SaveError(e.to_string()))?;
-                    Ok(listener)
-                } // Insertion successful
-                Some(_) => Err(ApiError::InsertionError),
-            }
-        } else {
-            Err(ApiError::BotNotFound(args.bot_id.to_string()))
+        // Generate a unique ID for the new listener
+        let listener_id = uuid::Uuid::new_v4().to_string();
+
+        // Create the listener
+        let listener = Listener {
+            service: args.service,
+            secret: args.secret.unwrap_or_default(),
+            msg: args.msg.unwrap_or_default(),
+        };
+
+        // Insert the listener into the bot's listeners
+        if bot
+            .listeners
+            .insert(listener_id.clone(), listener.clone())
+            .is_none()
+        {
+            // Save the updated state
+            self.save::<PathBuf>(None)
+                .map_err(|e| ApiError::SaveError(e.to_string()))?;
+
+            // Return the newly added listener as a `ListenerView`
+            return Ok(ListenerView {
+                bot_id: args.bot_id,
+                listener_id,
+                service: Some(listener.service),
+                secret: Some(listener.secret),
+                msg: Some(listener.msg),
+            });
         }
+
+        // This case is unlikely to happen due to the UUID-based listener ID
+        Err(ApiError::InsertionError)
     }
 
     /// List all listeners for a bot, flattened with their IDs included.
