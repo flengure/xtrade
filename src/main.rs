@@ -1,46 +1,36 @@
-mod api;
-mod app_state;
-mod cli;
+// src/main.rs
+mod bot;
+mod config;
 mod errors;
-mod models;
-mod services;
+mod state;
 mod utils;
 
+use crate::bot::state::AppState;
 use chrono::Local;
 use clap::Parser;
 use colored::Colorize;
 use dotenv::dotenv;
 use fern::Dispatch;
 use log::LevelFilter;
+use std::sync::{Arc, Mutex};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     setup_logger().expect("Failed to initialize logger");
     dotenv().ok();
 
-    // Parse CLI arguments
-    let cli = cli::Cli::parse();
+    // Try to load AppState from a file or fall back to the default state
+    let app_state = Arc::new(Mutex::new(
+        AppState::load(None::<std::path::PathBuf>)
+            .map_err(|err| {
+                log::warn!("Failed to load AppState: {}. Using default state.", err);
+                err
+            })
+            .unwrap_or_else(|_| AppState::default()),
+    ));
 
-    // Match the mode
-    match cli.mode {
-        Some(cli::Mode::Server(server_args)) => {
-            println!(
-                "Bind: {:?}, Port: {:?}",
-                &server_args.bind, server_args.port
-            );
-            cli::server_mode(server_args).await?;
-        }
-        Some(cli::Mode::Offline(offline_args)) => {
-            cli::offline_mode(offline_args);
-        }
-        Some(cli::Mode::Online(online_args)) => {
-            cli::online_mode(online_args);
-        }
-        None => {
-            // Default to online mode
-            cli::online_mode(cli.online);
-        }
-    }
+    // Parse CLI arguments and delegate to bot::cli::run
+    let _ = bot::cli::run(bot::cli::Cli::parse(), app_state.clone()).await;
 
     Ok(())
 }

@@ -25,6 +25,7 @@ tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 thiserror = "2.0.11"
 validator = { version = "0.19.0", features = ["derive"] }
 validator_derive = "0.19.0"
+prettytable = "0.10.0"
 
 [dev-dependencies]
 mockito = "1.6.1"

@@ -1,5 +1,5 @@
 // src/cli/server.rs
-use crate::app_state::AppState;
+use crate::bot::AppState;
 use crate::cli::ServerArgs;
 use crate::utils::config::AppConfig;
 use actix_files as fs;

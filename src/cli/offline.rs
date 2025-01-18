@@ -1,9 +1,9 @@
 // src/cli/offline.rs
 
-use crate::app_state::AppState;
+use crate::bot::AppState;
+use crate::bot::{BotInsert, BotUpdate, ListenerInsert, ListenerList, ListenerUpdate};
 use crate::cli::Commands;
 use crate::cli::OfflineArgs;
-use crate::models::{BotInsert, BotUpdate, ListenerInsert, ListenerList, ListenerUpdate};
 use crate::utils::config::AppConfig;
 
 pub fn offline_mode(args: OfflineArgs) {

@@ -1,9 +1,9 @@
 // src/api/bots.rs
 
 use crate::api::Pagination;
-use crate::app_state::AppState;
+use crate::bot::AppState;
+use crate::bot::{Bot, BotInsert, BotUpdate};
 use crate::errors::ApiError;
-use crate::models::{Bot, BotInsert, BotUpdate};
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -100,7 +100,7 @@ async fn add_bot(
 }
 
 #[get("/bots/{bot_id}")]
-async fn get_bot_by_id(
+async fn get_bot(
     data: web::Data<Mutex<AppState>>,
     bot_id: web::Path<String>,
 ) -> Result<impl Responder, ApiError> {
@@ -115,7 +115,7 @@ async fn get_bot_by_id(
         };
         Ok(HttpResponse::Ok().json(api_response))
     } else {
-        Err(ApiError::BotNotFound)
+        Err(ApiError::BotNotFound(bot_id))
     }
 }
 
@@ -123,28 +123,23 @@ async fn get_bot_by_id(
 async fn update_bot(
     data: web::Data<Mutex<AppState>>,
     bot_id: web::Path<String>,
-    bot_input: web::Json<BotUpdate>,
+    bot_update: web::Json<BotUpdate>,
 ) -> Result<impl Responder, ApiError> {
     // Acquire the lock on AppState
     let mut state = data.lock().map_err(|_| ApiError::InternalServerError)?;
 
     // Extract and update the bot ID in the input
-    let mut updated_bot = bot_input.into_inner();
+    let mut updated_bot = bot_update.into_inner();
     updated_bot.bot_id = bot_id.into_inner();
 
     // Update the bot in the state
-    match state.update_bot(updated_bot) {
-        Ok(bot) => {
-            // Create the success response
-            let api_response = ApiResponse {
-                success: true,
-                data: Some(bot),
-                error: None,
-            };
-            Ok(HttpResponse::Ok().json(api_response))
-        }
-        Err(e) => Err(e), // Pass through the error
-    }
+    let bot = state.update_bot(updated_bot)?;
+    let api_response = ApiResponse {
+        success: true,
+        data: Some(bot),
+        error: None,
+    };
+    Ok(HttpResponse::Ok().json(api_response))
 }
 
 #[delete("/bots/{bot_id}")]
@@ -153,21 +148,13 @@ async fn delete_bot(
     bot_id: web::Path<String>,
 ) -> Result<impl Responder, ApiError> {
     let mut state = data.lock().unwrap();
-
-    if state.bots.remove(&bot_id.into_inner()).is_some() {
-        // Persist the state
-        state.save_state_to_file("state.json");
-
-        let api_response = ApiResponse::<String> {
-            success: true,
-            data: Some("Bot deleted successfully".into()),
-            error: None,
-        };
-
-        Ok(HttpResponse::Ok().json(api_response))
-    } else {
-        Err(ApiError::BotNotFound)
-    }
+    state.delete_bot(&bot_id.into_inner())?;
+    let api_response = ApiResponse::<String> {
+        success: true,
+        data: Some("Bot deleted successfully".into()),
+        error: None,
+    };
+    Ok(HttpResponse::Ok().json(api_response))
 }
 
 #[cfg(test)]
