@@ -1,7 +1,12 @@
-pub use crate::bot::view::{
-    Bot, BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs, BotView, Listener,
-    ListenerInsertArgs, ListenerListArgs, ListenerListView, ListenerUpdateArgs, ListenerView,
-};
+pub mod input;
+pub mod output;
+
+pub use input::{BotInsertArgs, BotListArgs, BotUpdateArgs};
+pub use input::{ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs};
+pub use output::{BotListView, BotView};
+pub use output::{ListenerListView, ListenerView};
+
+pub use crate::bot::model::{Bot, Listener};
 use crate::errors::ApiError;
 pub use crate::state::AppState;
 use log::info;

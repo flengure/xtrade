@@ -36,6 +36,7 @@ impl Default for AppState {
 
 impl AppState {
     /// Create a default AppState wrapped in Arc<Mutex>
+    #[allow(dead_code)]
     pub fn default_shared() -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Self::default()))
     }

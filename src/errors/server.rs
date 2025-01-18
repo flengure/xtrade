@@ -21,7 +21,4 @@ pub enum ServerError {
 
     #[error("No file path provided.")]
     NoFilePathProvided,
-
-    #[error("Failed to initialize application: {0}")]
-    InitializationError(String),
 }

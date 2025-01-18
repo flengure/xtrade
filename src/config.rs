@@ -16,11 +16,13 @@ pub struct WebConfig {
     pub path: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Default)]
 pub struct OnlineConfig {
     pub url: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Default)]
 pub struct OfflineConfig {
     pub state: String,
@@ -30,7 +32,9 @@ pub struct OfflineConfig {
 pub struct AppConfig {
     pub server: ServerConfig,
     pub web: WebConfig,
+    #[allow(dead_code)]
     pub online: OnlineConfig,
+    #[allow(dead_code)]
     pub offline: OfflineConfig,
 }
 

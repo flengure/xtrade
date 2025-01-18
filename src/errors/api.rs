@@ -2,27 +2,16 @@
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
-use std::path::PathBuf;
 use thiserror::Error;
 
 /// Represents the different kinds of errors that can occur when loading the AppState.
 #[derive(Debug, Error)]
 pub enum LoadError {
-    #[error("Failed to read file {:?}: {source}", path)]
-    FileReadError {
-        #[source]
-        source: std::io::Error,
-        path: PathBuf,
-    },
-
     #[error("Failed to parse JSON: {0}")]
     JsonParseError(#[from] serde_json::Error),
 
     #[error("Environment variable STATE_FILE is invalid: {0}")]
     EnvVarError(#[from] std::env::VarError),
-
-    #[error("No file path provided and AppState's file field is None.")]
-    NoFilePathProvided,
 }
 
 #[derive(Debug, Error)]
@@ -49,15 +38,19 @@ pub enum ApiError {
     #[error("General error")]
     GeneralError(String), // Client-side error
 
+    #[allow(dead_code)]
     #[error("Unexpected response from server: {0}")]
     UnexpectedResponse(String), // Could represent a non-500 server error
 
+    #[allow(dead_code)]
     #[error("Non Unique Result {0}")]
     NonUniqueResult(String), // HTTP 400
 
+    #[allow(dead_code)]
     #[error("Argument(s) required")]
     ArgumentsRequired, // HTTP 400
 
+    #[allow(dead_code)]
     #[error("Bot ID required")]
     BotIdRequired, // HTTP 400
 
@@ -72,6 +65,7 @@ pub enum ApiError {
     #[error("A bot with ID `{0}` already exists.")]
     BotAlreadyExists(String), // HTTP 409
 
+    #[allow(dead_code)]
     #[error("Failed to add the bot due to an internal error.")]
     InsertionError, // HTTP 500
 

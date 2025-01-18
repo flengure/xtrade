@@ -5,4 +5,4 @@ pub mod model;
 pub mod rest;
 pub mod server;
 pub mod state;
-pub mod view;
+//pub mod view;
