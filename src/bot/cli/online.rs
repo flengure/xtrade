@@ -76,7 +76,7 @@ pub async fn run(args: Commands, client: RestClient) -> Result<(), ApiError> {
 
         Commands::GetBot { bot_id } => {
             let bot = client.get_bot(&bot_id).await?;
-            println!("{}", bot);
+            println!("{:?}", bot);
             Ok(())
         }
 

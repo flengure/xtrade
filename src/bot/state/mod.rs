@@ -66,6 +66,7 @@ impl AppState {
         }
 
         self.bots.insert(bot.bot_id.clone(), bot.clone());
+        println!("hello");
         self.save::<PathBuf>(None)
             .map_err(|e| ApiError::SaveError(e.to_string()))?;
         Ok(bot.into())
