@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 // }
 
 /// Unified API response structure.
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ApiResponse<T> {
     pub success: bool,
     pub data: Option<T>,

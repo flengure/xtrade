@@ -1,5 +1,6 @@
 // src/errors.rs
 
+//use super::ServerError;
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
 use thiserror::Error;
@@ -14,8 +15,16 @@ pub enum LoadError {
     EnvVarError(#[from] std::env::VarError),
 }
 
+#[allow(dead_code)]
+pub fn map_to_api_error<E: std::fmt::Display>(err: E) -> ApiError {
+    ApiError::InternalServerError(format!("{}", err))
+}
+
 #[derive(Debug, Error)]
 pub enum ApiError {
+    #[allow(dead_code)]
+    #[error("Unknown API error: {0}")]
+    Unknown(String),
     // General errors
     #[error("Internal server error")]
     InternalServerError(String), // HTTP 500
@@ -105,6 +114,7 @@ impl ResponseError for ApiError {
             ApiError::BotIdRequired => actix_web::http::StatusCode::BAD_REQUEST, // HTTP 400
             ApiError::BotAlreadyExists(_) => actix_web::http::StatusCode::CONFLICT, // HTTP 409
             ApiError::InsertionError => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // HTTP 500
+            ApiError::Unknown(_) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // HTTP 500
             ApiError::SaveError(_) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // HTTP 500
             ApiError::InternalServerError(_) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // HTTP 500
             ApiError::ConnectionError(_) => actix_web::http::StatusCode::BAD_GATEWAY, // HTTP 502

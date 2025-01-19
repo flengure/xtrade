@@ -33,7 +33,7 @@ pub async fn run(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
                     web_bind,
                     web_root: web_path,
                 };
-                server::run(server_args).await?;
+                server::run(server_args, app_state.clone()).await?;
             } else {
                 return Err(Error::new(
                     ErrorKind::InvalidInput,
