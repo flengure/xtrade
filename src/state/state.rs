@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 pub struct AppState {
     pub bots: HashMap<String, Bot>,
     pub file: Option<PathBuf>,
+    #[serde(default)]
     pub config: AppConfig, // Running configuration
 }
 
@@ -68,10 +69,6 @@ impl AppState {
 
     /// Saves the current state to a JSON file.
     pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), ServerError> {
-        // Determine the file path based on the following priority:
-        // 1. Use the provided `file_path` if Some.
-        // 2. Use the `self.file` field if Some.
-        // 3. Otherwise, return an error.
         let state_file = file_path
             .map(|p| p.as_ref().to_path_buf())
             .or_else(|| self.file.clone())
