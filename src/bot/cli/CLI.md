@@ -1,14 +1,6 @@
-
-
-> [!NOTE] Title
-> Contents
-
-
-
-
 ```mermaid
 flowchart TD
-    A[state.rs\nProvides shared state]
+    A[state.rs<br>Provides shared state]
     B[api.rs\nDefines API endpoints]
     C[rest.rs\nHandles REST requests]
     D[offline.rs\nManages offline mode]
