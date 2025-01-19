@@ -1,3 +1,84 @@
-/target
-Cargo.lock
+
+# Cargo-specific files
+/target/
+**/*.rs.bk
+
+# If you're using Cargo workspaces
+**/target/
+
+# Environment
 .env
+
+# Build artifacts
+**/*.rlib
+**/*.rmeta
+**/*.d
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX
+
+# macOS resource forks
+*.swp
+._*
+
+# macOS Finder attributes
+.fseventsd/
+.Spotlight-V100/
+
+# macOS trash
+.Trashes/
+.DS_Store
+Icon?
+
+# Editor-specific files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iml
+
+# Other system files
+*.Thumbs.db
+*.crdownload
+*.lock
+
+# Node.js files (if you're building WebAssembly)
+node_modules/
+dist/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Git-specific files
+.git/
+*.orig
+
+# Temporary files created during Rust builds
+/.cargo-lock
+
+# Optional rustfmt or clippy output files
+**/*.fmt
+**/*.clippy
+
+# Binary output files (if you build and store manually)
+**/*.exe
+**/*.out
+**/*.bin
+**/*.o
+
+# Custom files or folders
+my_build/
+temp/
