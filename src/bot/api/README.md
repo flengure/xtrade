@@ -1,4 +1,4 @@
-# Application Architecture Diagram
+# api module Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -10,12 +10,14 @@ flowchart TD
     C1[rest.rs<br>Handles REST requests<br>Manages state interactions]:::online
 
     D1[online.rs<br>Manages online mode]:::online
-    D2[offline.rs<br>Manages offline mode]:::offline
+    D2[offline.rs<br>Manages offline mode]:::online
     F1((Terminal / CLI)):::ui
     F2((Terminal / CLI)):::ui
     F3((Terminal / CLI)):::ui
     G((Browser / curl)):::ui
     I1[ipc.rs<br>IPC Interface]:::ipc
+
+
 
     A1 <-- Data struct --> B1
     A1 <-- Data struct --> I1
@@ -32,64 +34,80 @@ flowchart TD
     classDef online fill:#d1e7dd,stroke:#0f5132,stroke-width:2px,font-size:14px,color:#0f5132;
     classDef offline fill:#f8d7da,stroke:#842029,stroke-width:2px,font-size:14px,color:#842029;
     classDef ipc fill:#cce5ff,stroke:#004085,stroke-width:2px,font-size:14px,color:#004085;
-    classDef central fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404;
+    classDef central fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404,font-weight:bold;
+```
 
----
 # Application Architecture Documentation
-
 ## Modules Overview
 
-### 1. `state.rs`
-Responsible for core logic related to online and offline state manipulation, as well as local data management.
+### 1. `state.rs`
 
-- **Key Responsibilities:**
-  - Defines operations on application state (e.g., CRUD operations for bots and listeners).
-  - Provides state to other components depending on the mode (online/offline).
-- **Modes:**
-  - **Online:**
-    - State is loaded from a file and provided to the API server.
-    - Utilizes `Arc<Mutex>` for shared state management.
-  - **Offline:**
-    - State is loaded from a file and provided to the CLI.
-- **Important Note:**
-  - All internal processes must interact with `state.rs` through `rest.rs` for now.
-  - future enhancement may provide **Supplementary Mechanisms:**
-    - **IPC Channels:** Lightweight, asynchronous communication for internal state access.
-    - **RPC (Remote Procedure Calls):** For specific, higher-level interactions across components.
+- **Purpose:**
+    Serves as the centralized state management module for both online (`Shared state`) and offline (`Saved state`) operations.
+
+- **Responsibilities:**
+
+    - Manages shared application state (`Shared state` for online operations).
+    - Manages saved application state (`Saved state` for offline operations).
+
+---
+### 2. `api.rs`
+
+- **Purpose:**
+    Defines REST endpoints and processes requests from the Web UI or external tools (e.g., curl).
+
+- **Responsibilities:**
+
+    - Handles REST API requests and routes them to the appropriate logic in `rest.rs`.
+    - Provides IPC command support for the CLI.
+
+---
+### 3. `rest.rs`
+
+- **Purpose:**
+    Handles REST-based interactions for the Web UI and external clients.
+
+- **Responsibilities:**
+
+    - Processes REST API calls forwarded by `api.rs`.
+    - Provides an interface between REST clients and the shared state.
+
+---
+### 4. `ipc.rs`
+
+- **Purpose:**
+    Facilitates direct communication between the CLI and the shared state.
+
+- **Responsibilities:**
+
+    - Receives CLI commands and performs state operations directly on `state.rs`.
 
 ---
 
-### 2. `api.rs`
-Defines HTTP endpoints and acts as the bridge between external requests and internal logic.
+### 5. `online.rs` / `offline.rs`
 
-- **Key Responsibilities:**
-  - Defines REST API endpoints.
-  - Calls `rest.rs` for state-related operations.
+- **Purpose:**
+    Handles mode-specific logic for online and offline operations.
 
----
+- **Responsibilities:**
 
-### 3. `rest.rs`
-Acts as the intermediary between internal processes and `state.rs`.
-
-- **Key Responsibilities:**
-  - Processes REST-based client operations.
-  - Handles all interactions with `state.rs`.
-  - Ensures state is accessed consistently and securely by internal processes.
+    - `online.rs`: Handles online mode operations and interactions with the REST API.
+    - `offline.rs`: Handles offline mode operations and interacts directly with the saved state.
 
 ---
 
-### 4. `online.rs`
-Contains logic specific to the online mode.
+### 6. CLI and Web UI
 
-- **Key Responsibilities:**
-  - Contains handler functions for interacting with the online REST client (`rest.rs`).
-  - Implements CLI commands that operate in the online mode.
+- **CLI:**
+    Provides terminal-based interaction with the system via `ipc.rs`.
+- **Web UI:**
+    Communicates with the REST API to perform operations on the shared state.
 
 ---
 
-### 5. `offline.rs`
-Contains logic specific to the offline mode.
+### Notes
 
-- **Key Responsibilities:**
-  - Contains handler functions for interacting with the saved application state (`state.rs`) via `rest.rs`.
-  - Implements CLI commands that operate in the offline mode.
+- **Concurrency Handling:**
+    Use `RwLock` or `Mutex` in `state.rs` to manage concurrent access from REST and IPC pathways.
+- **Scalability:**
+    Modularize the application into separate crates if the project grows in complexity.
