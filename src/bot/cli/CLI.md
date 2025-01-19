@@ -1,10 +1,10 @@
 ```mermaid
 flowchart TD
     A[state.rs<br>Provides shared state]
-    B[api.rs\nDefines API endpoints]
-    C[rest.rs\nHandles REST requests]
-    D[offline.rs\nManages offline mode]
-    E[online.rs\nManages online mode]
+    B[api.rs<br>Defines API endpoints]
+    C[rest.rs<br>Handles REST requests]
+    D[offline.rs<br>Manages offline mode]
+    E[online.rs<br>Manages online mode]
     F((Terminal / CLI)):::ui
     G(((Browser / curl))):::ui
 
@@ -17,9 +17,4 @@ flowchart TD
     D <-- Text --> F
 
     classDef ui fill:#005f73,stroke:#0a9396,stroke-width:2px,font-size:14px,color:#ffffff,font-weight:bold;
-```
-
-
-
-
 ```
