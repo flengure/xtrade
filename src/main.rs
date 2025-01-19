@@ -13,7 +13,9 @@ use std::sync::{Arc, Mutex};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    setup_logger().expect("Failed to initialize logger");
+    let cli = bot::cli::Cli::parse();
+    let log_level = cli.log_level();
+    setup_logger(log_level).expect("Failed to initialize logger");
     dotenv().ok();
 
     // Try to load AppState from a file or fall back to the default state

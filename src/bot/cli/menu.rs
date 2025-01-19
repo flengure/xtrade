@@ -1,4 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
+use log::LevelFilter;
 
 /// Command-line interface for xTrade.
 #[derive(Parser, Clone, Debug)]
@@ -21,9 +22,9 @@ pub struct Cli {
     #[arg(long)]
     pub url: Option<String>,
 
-    /// Enable verbose output
-    #[arg(short, long, global = true)]
-    pub verbose: bool,
+    /// Verbosity level (-v, -vv, -vvv)
+    #[arg(short, long, global = true, action = clap::ArgAction::Count)]
+    pub verbose: u8,
 
     /// Subcommands for managing bots, listeners, and server
     #[command(subcommand)]
@@ -39,6 +40,21 @@ impl Cli {
             (None, Some(_), _) => "online",
             (None, None, _) => "offline",
             _ => unreachable!("Invalid combination of 'state' and 'url'."),
+        }
+    }
+    pub fn log_level(&self) -> LevelFilter {
+        match &self.command {
+            Commands::Server { .. } => match self.verbose {
+                0 => LevelFilter::Info,  // Default: Show info messages for server
+                1 => LevelFilter::Debug, // -v: Show debug and info messages
+                _ => LevelFilter::Trace, // -vv or more: Show everything
+            },
+            _ => match self.verbose {
+                0 => LevelFilter::Warn,  // Default: Only warnings and errors
+                1 => LevelFilter::Info,  // -v: Show info, warnings, and errors
+                2 => LevelFilter::Debug, // -vv: Show debug, info, warnings, and errors
+                _ => LevelFilter::Trace, // -vvv or more: Show everything
+            },
         }
     }
 }

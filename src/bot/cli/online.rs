@@ -24,7 +24,7 @@ where
         .await
         .map_err(|e| ApiError::ConnectionError(format!("Failed to read response body: {}", e)))?;
 
-    println!("Raw response body: {}", body); // Optional: Debugging raw response
+    //println!("Raw response body: {}", body); // Optional: Debugging raw response
 
     if status.is_success() {
         // Parse the body into ApiResponse<T>
