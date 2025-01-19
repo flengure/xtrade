@@ -15,3 +15,13 @@ currently is a list os bots each with attached listeners
 | Fetch a Bot by ID  | get_bot    | bot_id           | BotViewList   |
 | Update a Bot by ID | update_bot | bot_id           | BotViewList   |
 | Delete a Bot by ID | delete_bot | bot_id           | BotViewList   |
+
+
+
+```mermaid
+flowchart TD
+    A[State] <--> B[cli]
+    A[State] <--> D[api]
+    D --> E[rest]
+   
+```
