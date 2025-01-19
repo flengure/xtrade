@@ -14,6 +14,9 @@ Responsible for core logic related to online and offline state manipulation, as 
     - Utilizes `Arc<Mutex>` for shared state management.
   - **Offline:**
     - State is loaded from a file and provided to the CLI.
+- **Important Note:**
+  - All internal processes must interact with `state.rs` indirectly through `rest.rs` for now.
+  - A future enhancement may replace this with a more efficient mechanism such as **internal hooks** or **RPC**.
 
 ---
 
@@ -22,16 +25,17 @@ Defines HTTP endpoints and acts as the bridge between external requests and inte
 
 - **Key Responsibilities:**
   - Defines REST API endpoints.
-  - Calls underlying state functions or other appropriate logic to handle REST requests.
+  - Calls `rest.rs` for state-related operations.
 
 ---
 
 ### 3. `rest.rs`
-Handles operations related to REST-based client interactions for the online mode.
+Acts as the intermediary between internal processes and `state.rs`.
 
 - **Key Responsibilities:**
   - Processes REST-based client operations.
-  - Handles requests passed from `api.rs`.
+  - Handles all interactions with `state.rs`.
+  - Ensures state is accessed consistently and securely by internal processes.
 
 ---
 
@@ -48,14 +52,15 @@ Contains logic specific to the online mode.
 Contains logic specific to the offline mode.
 
 - **Key Responsibilities:**
-  - Contains handler functions for interacting with the saved application state (`state.rs`).
+  - Contains handler functions for interacting with the saved application state (`state.rs`) via `rest.rs`.
   - Implements CLI commands that operate in the offline mode.
 
 ---
 
 ## Architecture Diagram
 
-The following diagram illustrates the relationships between the key components of the application architecture:
+The following diagram illustrates the relationships between the key components of the application architecture.
+**Note:** All interactions with `state.rs` are mediated through `rest.rs`:
 
 ```mermaid
 flowchart TD
@@ -63,7 +68,7 @@ flowchart TD
     A1[state.rs<br>Provides Shared state]:::online
     A2[state.rs<br>Provides Saved state]:::offline
     B1[api.rs<br>Defines API endpoints]:::online
-    C1[rest.rs<br>Handles REST requests]:::online
+    C1[rest.rs<br>Handles REST requests<br>Mediates access to state.rs]:::online
     D1[offline.rs<br>Manages offline mode]:::offline
     D2[online.rs<br>Manages online mode]:::online
     F1((Terminal / CLI)):::ui
@@ -75,6 +80,7 @@ flowchart TD
     A1 <-- Data struct --> B1
     A2 <-- Data struct --> D1
     B1 <-- Request\nResponse --> C1
+    C1 <-- Mediates --> A
     C1 <-- Request\nResponse --> G
     C1 <-- Request\nResponse --> D2
     D2 <-- Text --> F2
