@@ -3,38 +3,38 @@
 ```mermaid
 flowchart TD
 
-    A1[state.rs<br>Provides Shared state]:::online
-    A2[state.rs<br>Provides Saved state]:::offline
+    S1[state.rs<br>Shared state<br>API Server]:::core
+    S2[state.rs<br>Saved state<br>File Storage]:::offline
 
-    B1[api.rs<br>Defines API endpoints<br>Handles IPC commands]:::online
-    C1[rest.rs<br>Handles REST requests<br>Manages state interactions]:::online
+    A1[api.rs]:::online
+    R1[rest.rs]:::online
 
-    D1[online.rs<br>Manages online mode]:::online
-    D2[offline.rs<br>Manages offline mode]:::online
-    F1((Terminal / CLI)):::ui
-    F2((Terminal / CLI)):::ui
-    F3((Terminal / CLI)):::ui
-    G((Browser / curl)):::ui
-    I1[ipc.rs<br>IPC Interface]:::ipc
+    ON[online.rs]:::online
+    OF[offline.rs]:::offline
+    F1(((Terminal<br>CLI))):::terminal
+    F2(((Terminal<br>CLI))):::terminal
+    F3(((Terminal<br>CLI))):::terminal
+    G(((Browsers<br>Web UI Client<br>curl<br>app))):::browser
+    I1[ipc.rs]:::ipc
 
+	S1 <-- Restore<br>Save --> S2
+    S1 <-- Data struct --> A1
+    S1 <-- Data struct --> I1
+    S2 <-- Data struct --> OF
+    OF <-- Text --> F2
 
-
-    A1 <-- Data struct --> B1
-    A1 <-- Data struct --> I1
-    A2 <-- Data struct --> D2
-    D2 <-- Text --> F2
-
-    B1 <-- Request\nResponse --> C1
-    C1 <-- Request\nResponse --> G
-    C1 <-- Request\nResponse --> D1
+    A1 <-- Request\nResponse --> R1
+    R1 <-- Request\nResponse --> G
+    R1 <-- Request\nResponse --> ON
     I1 <-- Text --> F3
-    D1 <--> F1
+    ON <--> F1
 
-    classDef ui fill:#005f73,stroke:#0a9396,stroke-width:2px,font-size:14px,color:#ffffff,font-weight:bold;
-    classDef online fill:#d1e7dd,stroke:#0f5132,stroke-width:2px,font-size:14px,color:#0f5132;
-    classDef offline fill:#f8d7da,stroke:#842029,stroke-width:2px,font-size:14px,color:#842029;
-    classDef ipc fill:#cce5ff,stroke:#004085,stroke-width:2px,font-size:14px,color:#004085;
-    classDef central fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404,font-weight:bold;
+    classDef core fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404,font-weight:bold;
+    classDef online fill:#d1e7dd,stroke:#0f5132,stroke-width:2px,font-size:14px,color:#0f5132,font-weight:bold;
+    classDef offline fill:#f8d7da,stroke:#842029,stroke-width:2px,font-size:14px,color:#842029,font-weight:bold;
+    classDef ipc fill:#cce5ff,stroke:#004085,stroke-width:2px,font-size:14px,color:#004085,font-weight:bold;
+    classDef browser fill:#0a735f,stroke:#0ae87c,stroke-width:2px,font-size:14px,color:#ffffff,font-weight:bold;
+    classDef terminal fill:#5f0a73,stroke:#7c3aed,stroke-width:2px,font-size:14px,color:#ffffff,font-weight:bold;
 ```
 
 # Application Architecture Documentation
