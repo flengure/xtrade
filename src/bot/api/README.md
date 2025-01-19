@@ -6,8 +6,8 @@ flowchart TD
     S1[state.rs<br>Shared state<br>API Server]:::core
     S2[state.rs<br>Saved state<br>File Storage]:::offline
 
-    A1[api.rs]:::online
-    R1[rest.rs]:::online
+    A1[api.rs<br>REST Endpoints]:::online
+    R1[rest.rs<br>REST Interface]:::online
 
     ON[online.rs]:::online
     OF[offline.rs]:::offline
@@ -15,7 +15,7 @@ flowchart TD
     F2(((Terminal<br>CLI))):::terminal
     F3(((Terminal<br>CLI))):::terminal
     G(((Browsers<br>Web UI Client<br>curl<br>app))):::browser
-    I1[ipc.rs]:::ipc
+    I1[ipc.rs<br>IPC Interface]:::ipc
 
 	S1 <-- Restore<br>Save --> S2
     S1 <-- Data struct --> A1
@@ -23,9 +23,9 @@ flowchart TD
     S2 <-- Data struct --> OF
     OF <-- Text --> F2
 
-    A1 <-- Request\nResponse --> R1
-    R1 <-- Request\nResponse --> G
-    R1 <-- Request\nResponse --> ON
+    A1 <-- Request<br>Response --> R1
+    R1 <-- Request<br>Response --> G
+    R1 <-- Request<br>Response --> ON
     I1 <-- Text --> F3
     ON <--> F1
 
