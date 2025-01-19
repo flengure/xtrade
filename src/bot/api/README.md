@@ -17,7 +17,7 @@ flowchart TD
     G(((Browsers<br>Web UI Client<br>curl<br>app))):::browser
     I1[ipc.rs<br>IPC Interface]:::ipc
 
-	S1 <-- Restore<br>Save --> S2
+
     S1 <-- Data struct --> A1
     S1 <-- Data struct --> I1
     S2 <-- Data struct --> OF
