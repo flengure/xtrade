@@ -40,6 +40,7 @@ flowchart TD
     classDef offline fill:#f8d7da,stroke:#842029,stroke-width:2px,font-size:14px,color:#842029;
     classDef ipc fill:#cce5ff,stroke:#004085,stroke-width:2px,font-size:14px,color:#004085;
     classDef central fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404,font-weight:bold;
+
 ---
 ## Modules Overview
 
