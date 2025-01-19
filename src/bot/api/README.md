@@ -18,3 +18,9 @@ flowchart TD
 
     classDef ui fill:#005f73,stroke:#0a9396,stroke-width:2px,font-size:14px,color:#ffffff,font-weight:bold;
 ```
+```
+Offline mode is a maintenance mode just to maintain the offline data
+does not represent the actual state
+
+Cli commands need to use online mode for the actial state
+```
