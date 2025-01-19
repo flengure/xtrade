@@ -1,3 +1,62 @@
+# Application Architecture Documentation
+
+## Modules Overview
+
+### 1. `state.rs`
+Responsible for core logic related to online and offline state manipulation, as well as local data management.
+
+- **Key Responsibilities:**
+  - Defines operations on application state (e.g., CRUD operations for bots and listeners).
+  - Provides state to other components depending on the mode (online/offline).
+- **Modes:**
+  - **Online:**
+    - State is loaded from a file and provided to the API server.
+    - Utilizes `Arc<Mutex>` for shared state management.
+  - **Offline:**
+    - State is loaded from a file and provided to the CLI.
+
+---
+
+### 2. `api.rs`
+Defines HTTP endpoints and acts as the bridge between external requests and internal logic.
+
+- **Key Responsibilities:**
+  - Defines REST API endpoints.
+  - Calls underlying state functions or other appropriate logic to handle REST requests.
+
+---
+
+### 3. `rest.rs`
+Handles operations related to REST-based client interactions for the online mode.
+
+- **Key Responsibilities:**
+  - Processes REST-based client operations.
+  - Handles requests passed from `api.rs`.
+
+---
+
+### 4. `online.rs`
+Contains logic specific to the online mode.
+
+- **Key Responsibilities:**
+  - Contains handler functions for interacting with the online REST client (`rest.rs`).
+  - Implements CLI commands that operate in the online mode.
+
+---
+
+### 5. `offline.rs`
+Contains logic specific to the offline mode.
+
+- **Key Responsibilities:**
+  - Contains handler functions for interacting with the saved application state (`state.rs`).
+  - Implements CLI commands that operate in the offline mode.
+
+---
+
+## Architecture Diagram
+
+The following diagram illustrates the relationships between the key components of the application architecture:
+
 ```mermaid
 flowchart TD
     A[state.rs<br>Provides Shared/Saved state]:::central
@@ -11,8 +70,8 @@ flowchart TD
     F2((Terminal / CLI)):::ui
     G((Browser / curl)):::ui
 
-	  A --> A1
-	  A --> A2
+    A --> A1
+    A --> A2
     A1 <-- Data struct --> B1
     A2 <-- Data struct --> D1
     B1 <-- Request\nResponse --> C1
@@ -25,10 +84,3 @@ flowchart TD
     classDef online fill:#d1e7dd,stroke:#0f5132,stroke-width:2px,font-size:14px,color:#0f5132;
     classDef offline fill:#f8d7da,stroke:#842029,stroke-width:2px,font-size:14px,color:#842029;
     classDef central fill:#ffeeba,stroke:#856404,stroke-width:2px,font-size:14px,color:#856404,font-weight:bold;
-```
-```
-Offline mode is a maintenance mode just to maintain the offline data
-does not represent the actual state
-
-Cli commands need to use online mode for the actial state
-```
