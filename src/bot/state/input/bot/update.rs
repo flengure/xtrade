@@ -35,9 +35,10 @@ pub struct BotUpdateArgs {
 
 impl BotUpdateArgs {
     /// Creates a new `BotUpdateArgs` instance with all fields as `None`.
-    pub fn new(bot_id: String) -> Self {
+    #[allow(dead_code)]
+    pub fn new(bot_id: &str) -> Self {
         Self {
-            bot_id,
+            bot_id: bot_id.to_string(),
             name: None,
             exchange: None,
             api_key: None,
@@ -53,59 +54,9 @@ impl BotUpdateArgs {
     }
 
     /// Fluent builder-style methods to set each field.
-
-    pub fn bot_id(mut self, bot_id: String) -> Self {
-        self.bot_id = bot_id;
-        self
-    }
-
-    pub fn name(mut self, name: Option<String>) -> Self {
-        self.name = name;
-        self
-    }
-
-    pub fn exchange(mut self, exchange: Option<String>) -> Self {
-        self.exchange = exchange;
-        self
-    }
-
-    pub fn api_key(mut self, api_key: Option<String>) -> Self {
-        self.api_key = api_key;
-        self
-    }
-
-    pub fn api_secret(mut self, api_secret: Option<String>) -> Self {
-        self.api_secret = api_secret;
-        self
-    }
-
-    pub fn rest_endpoint(mut self, rest_endpoint: Option<String>) -> Self {
-        self.rest_endpoint = rest_endpoint;
-        self
-    }
-
-    pub fn rpc_endpoint(mut self, rpc_endpoint: Option<String>) -> Self {
-        self.rpc_endpoint = rpc_endpoint;
-        self
-    }
-
-    pub fn webhook_secret(mut self, webhook_secret: Option<String>) -> Self {
-        self.webhook_secret = webhook_secret;
-        self
-    }
-
-    pub fn trading_fee(mut self, trading_fee: Option<f64>) -> Self {
-        self.trading_fee = trading_fee;
-        self
-    }
-
-    pub fn private_key(mut self, private_key: Option<String>) -> Self {
-        self.private_key = private_key;
-        self
-    }
-
-    pub fn contract_address(mut self, contract_address: Option<String>) -> Self {
-        self.contract_address = contract_address;
+    #[allow(dead_code)]
+    pub fn bot_id(mut self, bot_id: &str) -> Self {
+        self.bot_id = bot_id.to_string();
         self
     }
 

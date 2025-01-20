@@ -1,10 +1,13 @@
 // src/bot/api/mod.rs
 pub mod endpoints;
 //pub mod listeners;
-pub use crate::bot::state::{
-    AppState, BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs, ListenerInsertArgs,
-    ListenerListArgs,
+pub use crate::bot::state::input::bot::{BotDeleteArgs, BotInsertArgs, BotListArgs, BotUpdateArgs};
+pub use crate::bot::state::input::listener::{
+    ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs,
+    ListenersDeleteArgs,
 };
+pub use crate::bot::state::output::bot::BotListView;
+pub use crate::bot::state::AppState;
 pub use crate::errors::ApiError;
 use actix_web::web;
 use serde::{Deserialize, Serialize};

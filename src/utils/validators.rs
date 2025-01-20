@@ -2,12 +2,14 @@
 use url::Url;
 
 /// Validates a URL
+#[allow(dead_code)]
 pub fn validate_url(url: &str) -> Result<String, String> {
     Url::parse(url)
         .map(|_| url.to_string()) // Return the original string if valid
         .map_err(|_| format!("Invalid URL provided: {}", url)) // Error if parsing fails
 }
 
+#[allow(dead_code)]
 pub fn validate_port(port: &str) -> Result<u16, String> {
     port.parse::<u16>()
         .map_err(|_| {
@@ -26,6 +28,7 @@ pub fn validate_port(port: &str) -> Result<u16, String> {
 }
 
 /// Validates a bind address (valid IPv4/IPv6 address)
+#[allow(dead_code)]
 pub fn validate_bind_address(address: &str) -> Result<String, String> {
     address
         .parse::<std::net::IpAddr>()

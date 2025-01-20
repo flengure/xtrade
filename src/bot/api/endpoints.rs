@@ -1,12 +1,12 @@
 // src/bot/api/bots.rs
+use crate::bot::api::{acquire_lock, apply_pagination, create_api_response, Pagination};
 pub use crate::bot::state::BotGetArgs;
+use crate::bot::state::BotRegistry;
 use crate::errors::ApiError;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use std::sync::{Arc, Mutex};
 
-use crate::bot::api::{acquire_lock, apply_pagination, create_api_response, Pagination};
-
-use crate::bot::state::{
+use crate::bot::api::{
     AppState, BotDeleteArgs, BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs,
     ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs,
     ListenersDeleteArgs,
@@ -23,7 +23,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .service(list_listeners)
         .service(get_listener)
         .service(update_listener)
-        .service(delete_listeners)
+        //.service(delete_listeners)
         .service(delete_listener);
 }
 
@@ -168,12 +168,11 @@ async fn list_listeners(
     json_data: Option<web::Json<ListenerListArgs>>,
 ) -> Result<impl Responder, ApiError> {
     let bot_id = path.into_inner();
-    let mut select_request = json_data
+    let select_request = json_data
         .map(|payload| payload.into_inner())
-        .unwrap_or_else(|| ListenerListArgs::new(bot_id.clone()))
-        .bot_id(bot_id.clone());
+        .unwrap_or_else(|| ListenerListArgs::new(&bot_id))
+        .bot_id(Some(&bot_id));
 
-    select_request.bot_id = bot_id;
     let state = acquire_lock(&data)?;
     let selected_list = state.list_listeners(select_request)?;
     drop(state);
@@ -248,8 +247,7 @@ async fn delete_listeners(
     let bot_id = path.into_inner();
     let mut delete_request = json_data
         .map(|payload| payload.into_inner())
-        .unwrap_or_else(|| ListenersDeleteArgs::new(bot_id.clone()))
-        .bot_id(bot_id.clone());
+        .unwrap_or_else(|| ListenersDeleteArgs::new(&bot_id));
 
     delete_request.bot_id = bot_id;
     let mut state = acquire_lock(&data)?;

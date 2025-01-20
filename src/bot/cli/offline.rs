@@ -1,5 +1,6 @@
 use super::OfflineCmds;
 use crate::bot::state::AppState;
+use crate::bot::state::BotRegistry;
 use crate::errors::ApiError;
 use std::sync::{Arc, Mutex};
 

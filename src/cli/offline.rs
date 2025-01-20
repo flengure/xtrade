@@ -214,7 +214,7 @@ pub fn handle_offline_mode(command: Commands, app_state: &mut AppState) {
             bot_id,
             listener_id,
             service,
-        } => match app_state.delete_listeners(ListenerList {
+        } => match app_state.delete_listeners(ListenersDeleteArgs {
             bot_id,
             listener_id,
             service,

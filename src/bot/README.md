@@ -1,64 +1,50 @@
+# State Management Module
 
-```paintext
-src/
-├── bot
-│   ├── api/
-│   │   ├── mod.rs            # Module declaration for API
-│   │   ├── bots.rs           # Bot-related API endpoints
-│   │   ├── listeners.rs      # Listener-related API endpoints
-│   ├── api.rs
-│   ├── cli/
-│   │   ├── README.md
-│   │   ├── commands.rs
-│   │   ├── offline.rs
-│   │   ├── online.rs
-│   │   ├── mod.rs
-│   │   └── cli.rs
-│   ├── mod.rs
-│   ├── model.rs
-│   ├── rest.rs
-│   ├── state.rs
-│   └── view.rs
+This module is responsible for managing the core application state of bots and listeners, serving as a centralized interface for CRUD operations and state persistence. It is utilized by both the REST API endpoints and the CLI's offline mode, ensuring a consistent experience across different usage contexts.
 
-```
 ---
-**Reasoning Behind the Structure**
 
-1. Separation of Concerns
-	- state.rs
-		- Contains the core logic for state manipulation and local data management.
-		- Defines operations on application state, such as CRUD operations for bots and listeners.
-		- always uses Input Arg structs for arguments other than indexes
-		- always use Output View structs for structured return values
-	- api.rs
-		- focuses on defining HTTP endpoints for REST API.
-		- Maps REST calls to underlying state functions or other appropriate logic
-	- rest.rs
-		- Handles online REST-based client operations, such as sending requests to an external REST API.
-		- Provides a unified way to handle remote operations for CLI commands in “online” mode.
-	- model.rs
-		- Defines the fundamental data structures (e.g., Bot, Listener, etc.).
-	- view.rs
-		- Contains simplified or user-facing views and inputs of models (e.g., BotView, ListenerView, BotInsertArgs) for input, display and serialization
+## Key Responsibilities
+- **State Management**: Provides utilities to manipulate bots and listeners in memory.
+- **Persistence**: Ensures that changes to the state are saved to disk, enabling durability.
+- **Validation**: Enforces constraints on inputs, such as non-empty IDs and other field-level checks.
+- **Error Handling**: Propagates detailed and structured errors to the calling modules (REST API or CLI).
 
-2. **cli module:**
-- Purpose
-	- The cli module contains the logic for command-line interactions, with a clear distinction between offline and online operations.
-- Structure
-	- cli.rs
-		- Acts as the entry point for the CLI. Uses clap or another argument parser to parse commands and dispatch them to appropriate handlers.
-	- offline.rs:
-		- Contains handler functions that interact with the local application state (state.rs).
-		- Implements CLI commands that operate in offline mode.
-	- online.rs:
-		- Contains handler functions that interact with the online REST client (rest.rs).
-		- Implements CLI commands that operate in online mode.
-	- mod.rs:
-		- Serves as the entry point for the CLI module, exporting offline and online functionality.
-	- README.md:
-		- Documents how to use the CLI, providing examples of commands and usage scenarios.
-3. **Centralized CLI Menu**
-	- cli.rs:
-		- Centralizes command parsing and dispatching.
-		- Based on user input, directs commands to either offline (offline.rs) or online (online.rs) handlers.
-		- Maintains consistency in command names and arguments across offline and online modes.
+---
+
+## Integration Points
+- **REST API**:
+  - Used by `crate::bot::api::endpoint::<function_name>` to handle online operations.
+- **CLI Offline Mode**:
+  - Used by `crate::bot::cli::offline::run` for offline command execution.
+
+---
+
+## Structure
+- **Input Module** (`input`):
+  - Defines argument types (`BotInsertArgs`, `ListenerInsertArgs`, etc.) for input handling.
+- **Output Module** (`output`):
+  - Defines views (`BotView`, `ListenerView`, etc.) for serializable output structures.
+- **Server Module** (`server`):
+  - Manages arguments and configurations for server startup (`ServerStartupArgs`).
+
+---
+
+## Why This Matters
+This module serves as the backbone of the application's state management. It:
+- Acts as the single source of truth for bot and listener data.
+- Bridges the CLI and REST API with consistent logic and error propagation.
+- Handles critical operations like persistence, validation, and filtering with reliability.
+
+---
+
+## Example Usage
+
+### Adding a Bot
+```rust
+let mut state = AppState::new();
+let args = BotInsertArgs::new("TestBot", "Binance");
+let bot = state.add_bot(args)?;
+println!("Added bot: {}", bot);
+```
+###

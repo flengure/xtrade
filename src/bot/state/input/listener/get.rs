@@ -1,5 +1,4 @@
 //use crate::models::Listener;
-pub use crate::bot::model::{Bot, Listener};
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use validator::Validate;

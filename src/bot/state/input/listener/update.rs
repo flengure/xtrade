@@ -30,30 +30,6 @@ impl ListenerUpdateArgs {
         }
     }
 
-    /// Builder-style setter for `bot_id`
-    pub fn bot_id(mut self, bot_id: String) -> Self {
-        self.bot_id = bot_id;
-        self
-    }
-
-    /// Builder-style setter for `service`
-    pub fn service(mut self, service: Option<String>) -> Self {
-        self.service = service;
-        self
-    }
-
-    /// Builder-style setter for `secret`
-    pub fn secret(mut self, secret: Option<String>) -> Self {
-        self.secret = secret;
-        self
-    }
-
-    /// Builder-style setter for `msg`
-    pub fn msg(mut self, msg: Option<String>) -> Self {
-        self.msg = msg;
-        self
-    }
-
     /// Applies the update arguments to a given `Listener`.
     pub fn apply(&self, listener: &mut Listener) {
         if let Some(service) = &self.service {

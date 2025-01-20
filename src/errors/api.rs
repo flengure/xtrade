@@ -1,6 +1,7 @@
 // src/errors.rs
 
 //use super::ServerError;
+use crate::errors::ServerError;
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
 use thiserror::Error;
@@ -78,6 +79,7 @@ pub enum ApiError {
     #[error("Failed to add the bot due to an internal error.")]
     InsertionError, // HTTP 500
 
+    #[allow(dead_code)]
     #[error("Failed to save state: {0}")]
     SaveError(String), // HTTP 500
 
@@ -152,6 +154,39 @@ impl From<ReqwestError> for ApiError {
         } else {
             // General error handling for all other types of errors
             ApiError::GeneralError(format!("Network or other error: {}", error))
+        }
+    }
+}
+
+impl From<ServerError> for ApiError {
+    fn from(err: ServerError) -> Self {
+        match err {
+            // Map specific ServerError variants to appropriate ApiError variants
+            ServerError::ApiError(api_err) => *api_err, // Unwrap the boxed ApiError
+            ServerError::FileReadError { source, path } => {
+                ApiError::InternalServerError(format!("Failed to read file {:?}: {}", path, source))
+            }
+            ServerError::FileWriteError { source, path } => ApiError::InternalServerError(format!(
+                "Failed to write file {:?}: {}",
+                path, source
+            )),
+            ServerError::JsonParseError(e) => ApiError::SerializationError(e.to_string()),
+            ServerError::EnvVarError(e) => {
+                ApiError::InternalServerError(format!("Environment variable error: {}", e))
+            }
+            ServerError::NoFilePathProvided => {
+                ApiError::InvalidInput("No file path provided".to_string())
+            }
+            ServerError::ConfigError(e) => {
+                ApiError::InternalServerError(format!("Configuration error: {}", e))
+            }
+            ServerError::LockError => {
+                ApiError::InternalServerError("Failed to acquire lock".to_string())
+            }
+            ServerError::InvalidState(msg) => {
+                ApiError::InternalServerError(format!("Invalid state: {}", msg))
+            }
+            ServerError::Other(msg) => ApiError::InternalServerError(msg),
         }
     }
 }

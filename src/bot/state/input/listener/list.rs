@@ -20,40 +20,18 @@ pub struct ListenerListArgs {
 
 impl ListenerListArgs {
     /// Create a new `ListenerListArgs` with mandatory `bot_id`
-    pub fn new(bot_id: String) -> Self {
+    pub fn new(bot_id: &str) -> Self {
         Self {
             page: Some(1),
             limit: Some(10),
-            bot_id,
+            bot_id: bot_id.to_string(),
             listener_id: None,
             service: None,
         }
     }
 
-    /// Add optional `page` to filter by a specific listener
-    pub fn page(mut self, page: Option<u32>) -> Self {
-        self.page = page;
-        self
-    }
-    /// Add optional `limit` to filter by a specific listener
-    pub fn limit(mut self, limit: Option<u32>) -> Self {
-        self.limit = limit;
-        self
-    }
-    /// Add optional `bot_id` to filter by a specific listener
-    pub fn bot_id(mut self, bot_id: String) -> Self {
-        self.bot_id = bot_id;
-        self
-    }
-    /// Add optional `listener_id` to filter by a specific listener
-    pub fn listener_id(mut self, listener_id: Option<String>) -> Self {
-        self.listener_id = listener_id;
-        self
-    }
-
-    /// Add optional `service` to filter by a specific service
-    pub fn service(mut self, service: Option<String>) -> Self {
-        self.service = service;
+    pub fn bot_id(mut self, bot_id: Option<&str>) -> Self {
+        self.bot_id = bot_id.map_or_else(|| String::new(), |x| x.to_string());
         self
     }
 

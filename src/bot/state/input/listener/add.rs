@@ -22,6 +22,7 @@ pub struct ListenerInsertArgs {
 impl ListenerInsertArgs {
     /// Creates a new `ListenerInsertArgs` instance with required fields.
     /// Generates a `listener_id` if none is provided.
+    #[allow(dead_code)]
     pub fn new(bot_id: &str, service: &str) -> Self {
         Self {
             bot_id: bot_id.to_string(),

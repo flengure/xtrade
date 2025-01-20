@@ -74,7 +74,7 @@ impl AppState {
             .or_else(|| self.file.clone())
             .ok_or(ServerError::NoFilePathProvided)?;
 
-        info!("Saving state to file: {:?}", &state_file);
+        //info!("Saving state to file: {:?}", &state_file);
 
         // Serialize the AppState to JSON
         let state_json = serde_json::to_string_pretty(self).map_err(ServerError::JsonParseError)?;
