@@ -1,17 +1,18 @@
-pub use crate::bot::cli::Cli;
-use crate::bot::cli::Commands;
-use crate::bot::rest::RestClient;
-use crate::bot::server;
-use crate::bot::server::ServerArgs;
-use crate::bot::state::AppState;
-use std::io::{Error, ErrorKind, Result};
-use std::sync::{Arc, Mutex};
-
-/// Handle CLI commands and modes
+/// Dispatch CLI commands and modes
 pub async fn run(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
-    match cli.mode() {
-        "server" => {
-            if let Commands::Server {
+    match cli.command {
+        // Handle the `Server` mode
+        Commands::Server {
+            port,
+            bind,
+            state,
+            web,
+            no_web,
+            web_port,
+            web_bind,
+            web_path,
+        } => {
+            let server_args = ServerArgs {
                 port,
                 bind,
                 state,
@@ -19,54 +20,38 @@ pub async fn run(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
                 no_web,
                 web_port,
                 web_bind,
-                web_path,
-            } = cli.command
-            {
-                // Construct the `ServerArgs` struct and pass it to the `server::run` function
-                let server_args = ServerArgs {
-                    port,
-                    bind,
-                    state,
-                    web,
-                    no_web,
-                    web_port,
-                    web_bind,
-                    web_root: web_path,
-                };
-                server::run(server_args, app_state.clone()).await?;
-            } else {
-                return Err(Error::new(
-                    ErrorKind::InvalidInput,
-                    "Invalid command for server mode.",
-                ));
-            }
+                web_root: web_path,
+            };
+            server::run(server_args, app_state.clone()).await?;
         }
-        "offline" => {
-            // Pass `cli.command` directly since it's not wrapped in `Option`
-            crate::bot::cli::offline::run(cli.command, app_state.clone())
+
+        // Handle the `Offline` mode
+        Commands::Offline(offline_args) => {
+            // If a state file is provided, update the app_state's file field
+            if let Some(state_path) = offline_args.state {
+                let mut app_state = app_state.lock().unwrap();
+                app_state.file = Some(state_path.into());
+            }
+
+            // Dispatch offline management commands
+            crate::bot::cli::offline::run(offline_args.command, app_state.clone())
                 .await
                 .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
         }
-        "online" => {
-            if let Some(url) = cli.url {
-                let rest_client = RestClient::new(&url);
-                // Pass `cli.command` directly since it's not wrapped in `Option`
-                crate::bot::cli::online::run(cli.command, rest_client)
-                    .await
-                    .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
-            } else {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "URL must be provided for online mode.",
-                ));
-            }
-        }
-        _ => {
-            return Err(Error::new(
-                ErrorKind::InvalidInput,
-                "Unknown or unsupported mode.",
-            ));
+
+        // Handle the `Management` commands in online mode
+        Commands::Management(management_command) => {
+            let url = cli
+                .url
+                .unwrap_or_else(|| "http://localhost:7762".to_string());
+            let rest_client = RestClient::new(&url);
+
+            // Dispatch online management commands
+            crate::bot::cli::online::run(management_command, rest_client)
+                .await
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
         }
     }
+
     Ok(())
 }

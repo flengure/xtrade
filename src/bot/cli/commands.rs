@@ -1,4 +1,4 @@
-// src/bot/cli/menu.rs
+// src/bot/cli/commands.rs
 
 use crate::bot::state::{
     BotDeleteArgs, BotGetArgs, BotInsertArgs, BotListArgs, BotUpdateArgs, ListenerDeleteArgs,
@@ -65,12 +65,10 @@ pub enum Commands {
     /// Offline mode commands
     Offline {
         #[command(subcommand)]
-        offline_command: OfflineCommands,
+        offline_command: OfflineCmds,
     },
-
     // Server
     Server(ServerStartupArgs),
-
     // Online mode commands (mirrors offline commands but acts through REST)
     AddBot(BotInsertArgs),
     ListBots(BotListArgs),
@@ -86,7 +84,7 @@ pub enum Commands {
 }
 
 #[derive(Subcommand, Clone, Debug)]
-pub enum OfflineCommands {
+pub enum OfflineCmds {
     /// Clears all bots or listeners
     ClearAll {
         /// Target to clear: "bots" or "listeners"

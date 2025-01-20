@@ -1,28 +1,40 @@
 //use crate::models::Listener;
-pub use crate::bot::model::{Bot, Listener};
+use crate::bot::model::Bot;
+use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use validator::Validate;
 
-#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
+#[derive(Args, Clone, Debug, Deserialize, Serialize, Validate)]
 pub struct BotInsertArgs {
     /// Optional unique identifier for the bot. If not provided, a new UUID will be generated.
+    #[arg(long)]
     pub bot_id: Option<String>,
+    #[arg(long)]
     #[validate(length(min = 1, message = "Name cannot be empty"))]
     pub name: String,
+    #[arg(long)]
     #[validate(length(min = 1, message = "Exchange cannot be empty"))]
     pub exchange: String,
+    #[arg(long)]
     pub api_key: Option<String>,
+    #[arg(long)]
     pub api_secret: Option<String>,
+    #[arg(long)]
     pub rest_endpoint: Option<String>,
+    #[arg(long)]
     pub rpc_endpoint: Option<String>,
+    #[arg(long)]
     pub webhook_secret: Option<String>,
+    #[arg(long)]
     pub trading_fee: Option<f64>,
+    #[arg(long)]
     pub private_key: Option<String>,
+    #[arg(long)]
     pub contract_address: Option<String>,
-    pub listeners: HashMap<String, Listener>,
 }
 
+#[allow(dead_code)]
 impl BotInsertArgs {
     /// Create a new `BotInsertArgs` instance with required fields
     pub fn new(name: String, exchange: String) -> Self {
@@ -39,7 +51,6 @@ impl BotInsertArgs {
             trading_fee: None,
             private_key: None,
             contract_address: None,
-            listeners: HashMap::new(),
         }
     }
 

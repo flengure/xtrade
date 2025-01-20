@@ -1,25 +1,39 @@
 //use crate::models::Listener;
 pub use crate::bot::model::Listener;
+use clap::Args;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Args, Clone, Debug, Deserialize, Serialize, Validate)]
 pub struct ListenerUpdateArgs {
+    #[arg(long)]
+    pub bot_id: String,
+    #[arg(long)]
     #[validate(length(min = 1, message = "Listener ID cannot be empty"))]
     pub listener_id: String, // Required
+    #[arg(long)]
     pub service: Option<String>, // Optional
-    pub secret: Option<String>,  // Optional
-    pub msg: Option<String>,     // Optional
+    #[arg(long)]
+    pub secret: Option<String>, // Optional
+    #[arg(long)]
+    pub msg: Option<String>, // Optional
 }
 impl ListenerUpdateArgs {
     /// Create a new `ListenerUpdateArgs` with mandatory `listener_id`
-    pub fn new(listener_id: String) -> Self {
+    pub fn new(bot_id: &str, listener_id: &str) -> Self {
         Self {
-            listener_id,
+            bot_id: bot_id.to_string(),
+            listener_id: listener_id.to_string(),
             service: None,
             secret: None,
             msg: None,
         }
+    }
+
+    /// Builder-style setter for `bot_id`
+    pub fn bot_id(mut self, bot_id: String) -> Self {
+        self.bot_id = bot_id;
+        self
     }
 
     /// Builder-style setter for `service`

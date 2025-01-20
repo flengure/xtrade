@@ -1,12 +1,6 @@
 use crate::bot::api::ApiResponse;
 use crate::bot::cli::Commands;
-use crate::bot::rest::{
-    BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs, BotView, ListenerInsertArgs,
-    ListenerListArgs, ListenerListView, ListenerUpdateArgs, ListenerView, RestClient,
-};
-// use reqwest::Response;
-// use serde::de::DeserializeOwned;
-
+use crate::bot::rest::{BotListView, BotView, ListenerListView, ListenerView, RestClient};
 use crate::errors::ApiError;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
@@ -58,207 +52,114 @@ where
 /// Handle CLI commands in online mode
 pub async fn run(args: Commands, client: RestClient) -> Result<(), ApiError> {
     match args {
-        Commands::Server { .. } => Err(ApiError::InvalidInput(
-            "The `Server` command cannot be used in online mode.".to_string(),
-        )),
-        Commands::ClearAll { target: _ } => {
-            println!("The 'ClearAll' command is not supported in online mode.");
-            Ok(())
-        }
-
-        Commands::AddBot {
-            bot_id,
-            name,
-            exchange,
-            api_key,
-            api_secret,
-            rest_endpoint,
-            rpc_endpoint,
-            webhook_secret,
-            trading_fee,
-            private_key,
-            contract_address,
-        } => {
-            let bot_insert_args = BotInsertArgs::new(name, exchange)
-                .bot_id(bot_id)
-                .api_key(api_key)
-                .api_secret(api_secret)
-                .rest_endpoint(rest_endpoint)
-                .rpc_endpoint(rpc_endpoint)
-                .webhook_secret(webhook_secret)
-                .trading_fee(trading_fee)
-                .private_key(private_key)
-                .contract_address(contract_address);
-
+        Commands::AddBot(bot_insert_args) => {
             process_and_display_response::<BotView>(client.add_bot(bot_insert_args).await?).await
         }
 
-        Commands::ListBots {
-            page,
-            limit,
-            bot_id,
-            name,
-            exchange,
-            api_key,
-            rest_endpoint,
-            rpc_endpoint,
-            trading_fee,
-            private_key,
-            contract_address,
-        } => {
-            let filter_args = BotListArgs::new()
-                .bot_id(bot_id)
-                .name(name)
-                .exchange(exchange)
-                .api_key(api_key)
-                .rest_endpoint(rest_endpoint)
-                .rpc_endpoint(rpc_endpoint)
-                .trading_fee(trading_fee)
-                .private_key(private_key)
-                .contract_address(contract_address);
-
+        Commands::ListBots(bot_list_args) => {
             process_and_display_response::<BotListView>(
-                client.get_bots(page, limit, Some(filter_args)).await?,
+                client
+                    .get_bots(bot_list_args.page, bot_list_args.limit, Some(bot_list_args))
+                    .await?,
             )
             .await
         }
 
-        Commands::GetBot { bot_id } => {
-            let response = client.get_bot(&bot_id).await?;
-            process_and_display_response::<BotView>(response).await
-        }
-
-        Commands::UpdateBot {
-            bot_id,
-            name,
-            exchange,
-            api_key,
-            api_secret,
-            rest_endpoint,
-            rpc_endpoint,
-            webhook_secret,
-            trading_fee,
-            private_key,
-            contract_address,
-        } => {
-            let update_args = BotUpdateArgs::new()
-                .name(name)
-                .exchange(exchange)
-                .api_key(api_key)
-                .api_secret(api_secret)
-                .rest_endpoint(rest_endpoint)
-                .rpc_endpoint(rpc_endpoint)
-                .webhook_secret(webhook_secret)
-                .trading_fee(trading_fee)
-                .private_key(private_key)
-                .contract_address(contract_address);
-
-            process_and_display_response::<BotView>(client.update_bot(&bot_id, update_args).await?)
+        Commands::GetBot(bot_get_args) => {
+            process_and_display_response::<BotView>(client.get_bot(&bot_get_args.bot_id).await?)
                 .await
         }
 
-        Commands::DeleteBot { bot_id } => {
-            process_and_display_response::<BotView>(client.delete_bot(&bot_id).await?).await
-        }
-
-        Commands::AddListener {
-            bot_id,
-            service,
-            secret,
-            msg,
-        } => {
-            process_and_display_response::<ListenerView>(
+        Commands::UpdateBot(bot_update_args) => {
+            process_and_display_response::<BotView>(
                 client
-                    .add_listener(&bot_id, ListenerInsertArgs::new(service, secret, msg))
+                    .update_bot(&bot_update_args.bot_id.to_string(), bot_update_args)
                     .await?,
             )
             .await
         }
 
-        Commands::ListListeners {
-            bot_id,
-            listener_id,
-            service,
-            page,
-            limit,
-        } => {
+        Commands::DeleteBot(bot_delete_args) => {
+            process_and_display_response::<BotView>(
+                client.delete_bot(&bot_delete_args.bot_id).await?,
+            )
+            .await
+        }
+
+        Commands::AddListener(listener_insert_args) => {
+            process_and_display_response::<ListenerView>(
+                client
+                    .add_listener(
+                        &listener_insert_args.bot_id.to_string(),
+                        listener_insert_args,
+                    )
+                    .await?,
+            )
+            .await
+        }
+
+        Commands::ListListeners(listener_list_args) => {
             process_and_display_response::<ListenerListView>(
                 client
                     .get_listeners(
-                        &bot_id,
-                        page,
-                        limit,
-                        Some(
-                            ListenerListArgs::new()
-                                .listener_id(listener_id)
-                                .service(service),
-                        ),
+                        &listener_list_args.bot_id.to_string(),
+                        listener_list_args.page,
+                        listener_list_args.limit,
+                        Some(listener_list_args),
                     )
                     .await?,
             )
             .await
         }
 
-        Commands::GetListener {
-            bot_id,
-            listener_id,
-        } => {
+        Commands::GetListener(listener_get_args) => {
             process_and_display_response::<ListenerView>(
-                client.get_listener(&bot_id, &listener_id).await?,
+                client
+                    .get_listener(&listener_get_args.bot_id, &listener_get_args.listener_id)
+                    .await?,
             )
             .await
         }
 
-        Commands::UpdateListener {
-            bot_id,
-            listener_id,
-            service,
-            secret,
-            msg,
-        } => {
+        Commands::UpdateListener(listener_update_args) => {
             process_and_display_response::<ListenerView>(
                 client
                     .update_listener(
-                        &bot_id,
-                        &listener_id,
-                        ListenerUpdateArgs::new(listener_id.clone())
-                            .service(service)
-                            .secret(secret)
-                            .msg(msg),
+                        &listener_update_args.bot_id.to_string(),
+                        &listener_update_args.listener_id.to_string(),
+                        listener_update_args,
                     )
                     .await?,
             )
             .await
         }
 
-        Commands::DeleteListener {
-            bot_id,
-            listener_id,
-        } => {
+        Commands::DeleteListener(listener_delete_args) => {
             process_and_display_response::<ListenerView>(
-                client.delete_listener(&bot_id, &listener_id).await?,
+                client
+                    .delete_listener(
+                        &listener_delete_args.bot_id,
+                        &listener_delete_args.listener_id,
+                    )
+                    .await?,
             )
             .await
         }
 
-        Commands::DeleteListeners {
-            bot_id,
-            listener_id,
-            service,
-        } => {
+        Commands::DeleteListeners(listeners_delete_args) => {
             process_and_display_response::<ListenerListView>(
                 client
                     .delete_listeners(
-                        &bot_id,
-                        Some(
-                            ListenerListArgs::new()
-                                .listener_id(listener_id)
-                                .service(service),
-                        ),
+                        &listeners_delete_args.bot_id.to_string(),
+                        Some(listeners_delete_args),
                     )
                     .await?,
             )
             .await
         }
+
+        _ => Err(ApiError::InvalidInput(
+            "The provided command is not valid for online mode.".to_string(),
+        )),
     }
 }

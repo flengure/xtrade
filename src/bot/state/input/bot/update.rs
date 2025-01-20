@@ -1,28 +1,43 @@
 //use crate::models::Listener;
-pub use crate::bot::model::{Bot, Listener};
+use crate::bot::model::{Bot, Listener};
+use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use validator::Validate;
 
-#[derive(Debug, Deserialize, Serialize, Validate)]
+#[derive(Args, Clone, Debug, Deserialize, Serialize, Validate)]
 pub struct BotUpdateArgs {
+    #[arg(long)]
+    pub bot_id: String,
+    #[arg(long)]
     pub name: Option<String>,
+    #[arg(long)]
     pub exchange: Option<String>,
+    #[arg(long)]
     pub api_key: Option<String>,
+    #[arg(long)]
     pub api_secret: Option<String>,
+    #[arg(long)]
     pub rest_endpoint: Option<String>,
+    #[arg(long)]
     pub rpc_endpoint: Option<String>,
+    #[arg(long)]
     pub webhook_secret: Option<String>,
+    #[arg(long)]
     pub trading_fee: Option<f64>,
+    #[arg(long)]
     pub private_key: Option<String>,
+    #[arg(long)]
     pub contract_address: Option<String>,
+    #[arg(skip)]
     pub listeners: HashMap<String, Listener>,
 }
 
 impl BotUpdateArgs {
     /// Creates a new `BotUpdateArgs` instance with all fields as `None`.
-    pub fn new() -> Self {
+    pub fn new(bot_id: String) -> Self {
         Self {
+            bot_id,
             name: None,
             exchange: None,
             api_key: None,
@@ -38,6 +53,11 @@ impl BotUpdateArgs {
     }
 
     /// Fluent builder-style methods to set each field.
+
+    pub fn bot_id(mut self, bot_id: String) -> Self {
+        self.bot_id = bot_id;
+        self
+    }
 
     pub fn name(mut self, name: Option<String>) -> Self {
         self.name = name;

@@ -1,11 +1,15 @@
 // src/bot/api/bots.rs
+pub use crate::bot::state::BotGetArgs;
 use crate::errors::ApiError;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use std::sync::{Arc, Mutex};
 
-use crate::bot::api::{
-    acquire_lock, apply_pagination, create_api_response, AppState, BotInsertArgs, BotListArgs,
-    BotListView, BotUpdateArgs, ListenerInsertArgs, ListenerListArgs, Pagination,
+use crate::bot::api::{acquire_lock, apply_pagination, create_api_response, Pagination};
+
+use crate::bot::state::{
+    AppState, BotDeleteArgs, BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs,
+    ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs,
+    ListenersDeleteArgs,
 };
 
 /// Configure bot-related API routes
@@ -14,7 +18,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .service(get_bots)
         .service(get_bot)
         .service(update_bot)
-        .service(delete_bot);
+        .service(delete_bot)
+        .service(add_listener)
+        .service(list_listeners)
+        .service(get_listener)
+        .service(update_listener)
+        .service(delete_listeners)
+        .service(delete_listener);
 }
 
 #[post("/bots")]
@@ -90,7 +100,7 @@ async fn get_bot(
     bot_id: web::Path<String>,
 ) -> Result<impl Responder, ApiError> {
     let state = acquire_lock(&data)?;
-    let bot = state.get_bot(&bot_id.into_inner())?;
+    let bot = state.get_bot(BotGetArgs::new(&bot_id))?;
     let api_response = create_api_response(true, Some(bot), None);
     Ok(HttpResponse::Ok().json(api_response))
 }
@@ -104,8 +114,9 @@ async fn update_bot(
     let mut state = acquire_lock(&data)?;
     match json_data {
         Ok(good_json_data) => {
-            let update_data = good_json_data.into_inner();
-            let bot = state.update_bot(&bot_id, update_data)?;
+            let mut update_data = good_json_data.into_inner();
+            update_data.bot_id = bot_id.to_string();
+            let bot = state.update_bot(update_data)?;
             let api_response = create_api_response(true, Some(bot), None);
             Ok(HttpResponse::Ok().json(api_response))
         }
@@ -122,7 +133,7 @@ async fn delete_bot(
     bot_id: web::Path<String>,
 ) -> Result<impl Responder, ApiError> {
     let mut state = acquire_lock(&data)?;
-    state.delete_bot(&bot_id.into_inner())?;
+    state.delete_bot(BotDeleteArgs::new(&bot_id))?;
     let api_response =
         create_api_response(true, Some("Bot deleted successfully".to_string()), None);
     Ok(HttpResponse::Ok().json(api_response))
@@ -137,7 +148,9 @@ async fn add_listener(
     let mut state = acquire_lock(&data)?;
     match json_data {
         Ok(good_json_data) => {
-            let listener = state.add_listener(&bot_id.into_inner(), good_json_data.into_inner())?;
+            let mut args = good_json_data.into_inner();
+            args.bot_id = bot_id.into_inner();
+            let listener = state.add_listener(args)?;
             let api_response = create_api_response(true, Some(listener), None);
             Ok(HttpResponse::Ok().json(api_response))
         }
@@ -148,31 +161,63 @@ async fn add_listener(
     }
 }
 
-#[delete("/bots/{bot_id}/listeners")]
-async fn delete_listeners(
+#[get("/bots/{bot_id}/listeners")]
+async fn list_listeners(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<String>,
     json_data: Option<web::Json<ListenerListArgs>>,
 ) -> Result<impl Responder, ApiError> {
     let bot_id = path.into_inner();
-    let delete_request = json_data
+    let mut select_request = json_data
         .map(|payload| payload.into_inner())
-        .unwrap_or_else(|| ListenerListArgs {
-            listener_id: None,
-            service: None,
-        });
+        .unwrap_or_else(|| ListenerListArgs::new(bot_id.clone()))
+        .bot_id(bot_id.clone());
 
-    let mut state = acquire_lock(&data)?;
-    let deleted_list = state.delete_listeners(&bot_id, delete_request)?;
+    select_request.bot_id = bot_id;
+    let state = acquire_lock(&data)?;
+    let selected_list = state.list_listeners(select_request)?;
     drop(state);
 
-    if deleted_list.0.is_empty() {
+    if selected_list.0.is_empty() {
         return Err(ApiError::ListenerNotFound(
             "No matching listeners found.".to_string(),
         ));
     }
 
-    let api_response = create_api_response(true, Some(deleted_list), None);
+    let api_response = create_api_response(true, Some(selected_list), None);
+    Ok(HttpResponse::Ok().json(api_response))
+}
+
+#[get("/bots/{bot_id}/listeners/{listener_id}")]
+async fn get_listener(
+    data: web::Data<Arc<Mutex<AppState>>>,
+    path: web::Path<(String, String)>,
+) -> Result<impl Responder, ApiError> {
+    let (bot_id, listener_id) = path.into_inner();
+    let state = acquire_lock(&data)?;
+
+    state.get_listener(ListenerGetArgs::new(&bot_id, &listener_id))?;
+    let api_response = create_api_response(
+        true,
+        Some("Listener deleted successfully".to_string()),
+        None,
+    );
+    Ok(HttpResponse::Ok().json(api_response))
+}
+
+#[put("/bots/{bot_id}/listeners/{listener_id}")]
+async fn update_listener(
+    data: web::Data<Arc<Mutex<AppState>>>,
+    path: web::Path<(String, String)>,
+) -> Result<impl Responder, ApiError> {
+    let (bot_id, listener_id) = path.into_inner();
+    let mut state = acquire_lock(&data)?;
+    state.update_listener(ListenerUpdateArgs::new(&bot_id, &listener_id))?;
+    let api_response = create_api_response(
+        true,
+        Some("Listener deleted successfully".to_string()),
+        None,
+    );
     Ok(HttpResponse::Ok().json(api_response))
 }
 
@@ -183,11 +228,40 @@ async fn delete_listener(
 ) -> Result<impl Responder, ApiError> {
     let (bot_id, listener_id) = path.into_inner();
     let mut state = acquire_lock(&data)?;
-    state.delete_listener(&bot_id, &listener_id)?;
+    //let args = ListenerDeleteArgs::new(bot_id, listener_id);
+
+    state.delete_listener(ListenerDeleteArgs::new(&bot_id, &listener_id))?;
     let api_response = create_api_response(
         true,
         Some("Listener deleted successfully".to_string()),
         None,
     );
+    Ok(HttpResponse::Ok().json(api_response))
+}
+
+#[delete("/bots/{bot_id}/listeners")]
+async fn delete_listeners(
+    data: web::Data<Arc<Mutex<AppState>>>,
+    path: web::Path<String>,
+    json_data: Option<web::Json<ListenersDeleteArgs>>,
+) -> Result<impl Responder, ApiError> {
+    let bot_id = path.into_inner();
+    let mut delete_request = json_data
+        .map(|payload| payload.into_inner())
+        .unwrap_or_else(|| ListenersDeleteArgs::new(bot_id.clone()))
+        .bot_id(bot_id.clone());
+
+    delete_request.bot_id = bot_id;
+    let mut state = acquire_lock(&data)?;
+    let deleted_list = state.delete_listeners(delete_request)?;
+    drop(state);
+
+    if deleted_list.0.is_empty() {
+        return Err(ApiError::ListenerNotFound(
+            "No matching listeners found.".to_string(),
+        ));
+    }
+
+    let api_response = create_api_response(true, Some(deleted_list), None);
     Ok(HttpResponse::Ok().json(api_response))
 }

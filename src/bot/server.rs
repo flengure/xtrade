@@ -1,46 +1,18 @@
 use crate::bot::state::AppState;
+use crate::bot::state::ServerStartupArgs;
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
 use log::info;
 use std::sync::{Arc, Mutex};
 
-pub struct ServerArgs {
-    /// Specify the port for the server
-    pub port: Option<u16>, // Default value and validated for range
-
-    /// Specify the bind address for the server
-    pub bind: Option<String>, // Default value and validated for correctness
-
-    /// Specify the state file for the server
-    pub state: Option<String>, // Default value
-
-    /// Enable the Web UI (enabled by default)
-    pub web: bool,
-
-    /// Disable the Web UI
-    pub no_web: bool,
-
-    /// Specify the port for the web client
-    pub web_port: Option<u16>, // Default value and validated for range
-
-    /// Specify the bind address for the web client
-    pub web_bind: Option<String>, // Default value and validated for correctness
-
-    /// Specify the root for the web client
-    pub web_root: Option<String>, // Default value
-}
-
 /// Initialize all routes for the API
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     // Configure bot-related routes
-    crate::bot::api::bots::configure(cfg);
-
-    // Configure listener-related routes
-    crate::bot::api::listeners::configure(cfg);
+    crate::bot::api::endpoints::configure(cfg);
 }
 
 /// Run the application in server mode
-pub async fn run(args: ServerArgs, app_state: Arc<Mutex<AppState>>) -> std::io::Result<()> {
+pub async fn run(args: ServerStartupArgs, app_state: Arc<Mutex<AppState>>) -> std::io::Result<()> {
     // Acquire the lock on the AppState
     let app_state_guard = app_state.lock().map_err(|_| {
         log::error!("Failed to acquire lock on AppState.");
@@ -61,7 +33,7 @@ pub async fn run(args: ServerArgs, app_state: Arc<Mutex<AppState>>) -> std::io::
     let web_enabled = args.web || (!args.no_web && config.client.enabled);
     let web_bind = args.web_bind.unwrap_or_else(|| config.client.bind.clone());
     let web_port = args.web_port.unwrap_or(config.client.port);
-    let web_root = args.web_root.unwrap_or_else(|| config.client.path.clone());
+    let web_root = args.web_path.unwrap_or_else(|| config.client.path.clone());
 
     info!(
         "Starting API server on {}:{} with state file: {}",

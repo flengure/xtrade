@@ -5,14 +5,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 #[derive(Args, Clone, Debug, Deserialize, Serialize, Validate)]
-pub struct BotListArgs {
-    // these 2 are here because of clap
-    // ignored by other consumers
-    #[arg(long)]
-    pub page: Option<u32>,
-    #[arg(long)]
-    pub limit: Option<u32>,
-    // regular input fields
+pub struct BotsDeleteArgs {
     #[arg(long)]
     pub bot_id: Option<String>,
     #[arg(long)]
@@ -36,8 +29,6 @@ impl BotListArgs {
     /// Create a new `BotListArgs` instance with default values
     pub fn new() -> Self {
         Self {
-            page: Some(1),
-            limit: Some(10),
             bot_id: None,
             name: None,
             exchange: None,

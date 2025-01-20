@@ -1,6 +1,7 @@
 // src/bot/api/listeners.rs
-use crate::bot::api::{
-    acquire_lock, create_api_response, ApiError, AppState, ListenerInsertArgs, ListenerListArgs,
+use crate::bot::state::{
+    acquire_lock, create_api_response, ApiError, AppState, ListenerGetArgs, ListenerInsertArgs,
+    ListenerListArgs,
 };
 use actix_web::{delete, post, web, HttpResponse, Responder};
 use std::sync::{Arc, Mutex};

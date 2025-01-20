@@ -1,10 +1,15 @@
 pub mod input;
 pub mod output;
+pub mod server;
 
-pub use input::{BotInsertArgs, BotListArgs, BotUpdateArgs};
-pub use input::{ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs};
+pub use input::{BotDeleteArgs, BotGetArgs, BotInsertArgs, BotListArgs, BotUpdateArgs};
+pub use input::{
+    ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs,
+    ListenersDeleteArgs,
+};
 pub use output::{BotListView, BotView};
 pub use output::{ListenerListView, ListenerView};
+pub use server::ServerStartupArgs;
 
 pub use crate::bot::model::{Bot, Listener};
 use crate::errors::ApiError;
@@ -89,15 +94,15 @@ impl AppState {
     }
 
     /// Get a specific bot by ID.
-    pub fn get_bot(&self, bot_id: &str) -> Result<BotView, ApiError> {
-        let bot = self.get_bot_ref(bot_id)?;
+    pub fn get_bot(&self, args: BotGetArgs) -> Result<BotView, ApiError> {
+        let bot = self.get_bot_ref(&args.bot_id)?;
         Ok(bot.clone().into())
     }
 
     /// Update an existing bot.
-    pub fn update_bot(&mut self, bot_id: &str, args: BotUpdateArgs) -> Result<BotView, ApiError> {
+    pub fn update_bot(&mut self, args: BotUpdateArgs) -> Result<BotView, ApiError> {
         let bot_clone = {
-            let bot = self.get_bot_mut(bot_id)?;
+            let bot = self.get_bot_mut(&args.bot_id)?;
             args.apply(bot);
             bot.clone()
         };
@@ -108,11 +113,10 @@ impl AppState {
     }
 
     /// Delete a bot and return its view.
-    pub fn delete_bot(&mut self, bot_id: &str) -> Result<BotView, ApiError> {
-        let bot = self
-            .bots
-            .remove(bot_id)
-            .ok_or_else(|| ApiError::BotNotFound(format!("Bot with ID '{}' not found.", bot_id)))?;
+    pub fn delete_bot(&mut self, args: BotDeleteArgs) -> Result<BotView, ApiError> {
+        let bot = self.bots.remove(&args.bot_id).ok_or_else(|| {
+            ApiError::BotNotFound(format!("Bot with ID '{}' not found.", &args.bot_id))
+        })?;
 
         self.save::<PathBuf>(None)
             .map_err(|e| ApiError::SaveError(e.to_string()))?;
@@ -120,12 +124,8 @@ impl AppState {
     }
 
     /// Add a listener to a bot.
-    pub fn add_listener(
-        &mut self,
-        bot_id: &str,
-        args: ListenerInsertArgs,
-    ) -> Result<ListenerView, ApiError> {
-        let bot = self.get_bot_mut(bot_id)?;
+    pub fn add_listener(&mut self, args: ListenerInsertArgs) -> Result<ListenerView, ApiError> {
+        let bot = self.get_bot_mut(&args.bot_id)?;
         let listener_id = args
             .listener_id
             .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -138,23 +138,19 @@ impl AppState {
         bot.listeners.insert(listener_id.clone(), listener.clone());
         self.save::<PathBuf>(None)
             .map_err(|e| ApiError::SaveError(e.to_string()))?;
-        Ok((bot_id, listener_id.as_str(), &listener).into())
+        Ok((&args.bot_id, listener_id.as_str(), &listener).into())
     }
 
     /// List listeners for a bot, optionally filtering by arguments.
-    pub fn list_listeners(
-        &self,
-        bot_id: &str,
-        args: ListenerListArgs,
-    ) -> Result<ListenerListView, ApiError> {
-        self.validate_bot_id(bot_id)?;
-        let bot = self.get_bot_ref(bot_id)?;
+    pub fn list_listeners(&self, args: ListenerListArgs) -> Result<ListenerListView, ApiError> {
+        self.validate_bot_id(&args.bot_id)?;
+        let bot = self.get_bot_ref(&args.bot_id)?;
 
         let filtered_listeners: Vec<ListenerView> = bot
             .listeners
             .iter()
             .filter(|(id, listener)| args.matches(id, listener))
-            .map(|(id, listener)| (bot_id, id.as_str(), listener).into())
+            .map(|(id, listener)| (&args.bot_id, id.as_str(), listener).into())
             .collect();
 
         if filtered_listeners.is_empty() {
@@ -167,29 +163,25 @@ impl AppState {
     }
 
     /// Get a specific listener by bot ID and listener ID.
-    pub fn get_listener(&self, bot_id: &str, listener_id: &str) -> Result<ListenerView, ApiError> {
-        let bot = self.get_bot_ref(bot_id)?;
-        let listener = bot.listeners.get(listener_id).ok_or_else(|| {
+    pub fn get_listener(&self, args: ListenerGetArgs) -> Result<ListenerView, ApiError> {
+        let bot = self.get_bot_ref(&args.bot_id)?;
+        let listener = bot.listeners.get(&args.listener_id).ok_or_else(|| {
             ApiError::ListenerNotFound(format!(
                 "Listener with ID '{}' not found in bot '{}'.",
-                listener_id, bot_id
+                &args.listener_id, &args.bot_id
             ))
         })?;
-        Ok((bot_id, listener_id, listener).into())
+        Ok((&args.bot_id, &args.listener_id, listener).into())
     }
 
     /// Update a specific listener by bot ID and listener ID.
-    pub fn update_listener(
-        &mut self,
-        bot_id: &str,
-        args: ListenerUpdateArgs,
-    ) -> Result<ListenerView, ApiError> {
+    pub fn update_listener(&mut self, args: ListenerUpdateArgs) -> Result<ListenerView, ApiError> {
         let updated_listener_view = {
-            let bot = self.get_bot_mut(bot_id)?;
+            let bot = self.get_bot_mut(&args.bot_id)?;
             let listener = bot.listeners.get_mut(&args.listener_id).ok_or_else(|| {
                 ApiError::ListenerNotFound(format!(
                     "Listener ID '{}' not found in bot '{}'.",
-                    args.listener_id, bot_id
+                    args.listener_id, &args.bot_id
                 ))
             })?;
 
@@ -200,7 +192,7 @@ impl AppState {
             let listener_ref = &*listener;
 
             // Convert to ListenerView using the immutable reference
-            (bot_id, args.listener_id.as_str(), listener_ref).into()
+            (&args.bot_id, args.listener_id.as_str(), listener_ref).into()
         };
 
         // Save the updated state
@@ -211,43 +203,39 @@ impl AppState {
     }
 
     /// Delete a specific listener by bot ID and listener ID.
-    pub fn delete_listener(
-        &mut self,
-        bot_id: &str,
-        listener_id: &str,
-    ) -> Result<ListenerView, ApiError> {
+    pub fn delete_listener(&mut self, args: ListenerDeleteArgs) -> Result<ListenerView, ApiError> {
         let listener_clone = {
-            let bot = self.get_bot_mut(bot_id)?;
-            bot.listeners.remove(listener_id).ok_or_else(|| {
+            let bot = self.get_bot_mut(&args.bot_id)?;
+            bot.listeners.remove(&args.listener_id).ok_or_else(|| {
                 ApiError::ListenerNotFound(format!(
                     "Listener with ID '{}' not found in bot '{}'.",
-                    listener_id, bot_id
+                    &args.listener_id, &args.bot_id
                 ))
             })
         };
 
         self.save::<PathBuf>(None)
             .map_err(|e| ApiError::SaveError(e.to_string()))?;
-        Ok((bot_id, listener_id, &listener_clone?).into())
+        Ok((&args.bot_id, &args.listener_id, &listener_clone?).into())
     }
 
     /// Delete listeners matching criteria.
     pub fn delete_listeners(
         &mut self,
-        bot_id: &str,
-        args: ListenerListArgs,
+        args: ListenersDeleteArgs,
     ) -> Result<ListenerListView, ApiError> {
         let mut deleted_listeners = Vec::new();
 
         {
-            let bot = self.get_bot_mut(bot_id)?;
+            let bot = self.get_bot_mut(&args.bot_id)?;
             bot.listeners.retain(|listener_id, listener| {
                 if args.matches(listener_id, listener) {
                     // Create an immutable reference to the listener
                     let listener_ref = &*listener;
 
                     // Add the listener to the deleted list using the immutable reference
-                    deleted_listeners.push((bot_id, listener_id.as_str(), listener_ref).into());
+                    deleted_listeners
+                        .push((&args.bot_id, listener_id.as_str(), listener_ref).into());
                     false // Remove this listener
                 } else {
                     true // Retain this listener

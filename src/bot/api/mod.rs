@@ -1,6 +1,6 @@
 // src/bot/api/mod.rs
-pub mod bots;
-pub mod listeners;
+pub mod endpoints;
+//pub mod listeners;
 pub use crate::bot::state::{
     AppState, BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs, ListenerInsertArgs,
     ListenerListArgs,
