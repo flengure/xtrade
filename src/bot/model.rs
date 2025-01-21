@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Represents a trading bot with its configuration and associated listeners.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Bot {
     pub bot_id: String,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct Bot {
     pub listeners: HashMap<String, Listener>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Listener {
     pub service: String, // Service type (e.g., TradingView)
     pub secret: String,  // Security secret for the webhook

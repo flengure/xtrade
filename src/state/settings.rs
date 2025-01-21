@@ -46,7 +46,7 @@ use config::{Config, File};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ApiServerConfig {
     /// Port number for the API server
     pub port: u16,
@@ -56,7 +56,7 @@ pub struct ApiServerConfig {
     pub state_file_path: PathBuf,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct WebClientConfig {
     /// Whether the Web Client is enabled
     pub is_enabled: bool,
@@ -68,7 +68,7 @@ pub struct WebClientConfig {
     pub static_files_path: PathBuf,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct WebhookServerConfig {
     /// Whether the Webhook Server is enabled
     pub is_enabled: bool,
@@ -78,19 +78,19 @@ pub struct WebhookServerConfig {
     pub bind_address: String,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct RemoteServerConfig {
     /// URL of the remote server for online mode
     pub api_url: String,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct LocalStateConfig {
     /// File path for the local state file (offline mode)
     pub state_file_path: PathBuf,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct AppConfig {
     /// Configuration for the API Server
     pub api_server: ApiServerConfig,
