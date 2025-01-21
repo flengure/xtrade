@@ -57,6 +57,7 @@ pub async fn run(args: Commands, client: RestClient) -> Result<(), ApiError> {
         }
 
         Commands::ListBots(bot_list_args) => {
+            println!("hello");
             process_and_display_response::<BotListView>(
                 client
                     .get_bots(bot_list_args.page, bot_list_args.limit, Some(bot_list_args))

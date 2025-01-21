@@ -26,11 +26,11 @@ pub struct Cli {
     pub verbose: u8,
 
     /// Use a local state file (future-proof for DB)
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub state: Option<String>,
 
     /// Use a remote REST API endpoint
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub url: Option<String>,
 
     #[command(subcommand)]
@@ -48,14 +48,12 @@ impl Cli {
         }
     }
 
-    /// Determine the CLI mode (offline, online, or server)
+    /// Determine the CLI mode (offline or server)
     pub fn mode(&self) -> &str {
-        match (&self.state, &self.url, &self.command) {
-            (_, _, Commands::Server { .. }) => "server",
-            (Some(_), None, _) => "offline",
-            (None, Some(_), _) => "online",
-            (None, None, _) => "offline",
-            _ => unreachable!("Invalid combination of 'state' and 'url'."),
+        match &self.command {
+            Commands::Server { .. } => "server",
+            Commands::Offline { .. } => "offline",
+            _ => "online", // Default to "online" for all other commands
         }
     }
 }

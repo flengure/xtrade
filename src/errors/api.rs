@@ -4,6 +4,7 @@
 use crate::errors::ServerError;
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
+use std::path::PathBuf;
 use thiserror::Error;
 
 /// Represents the different kinds of errors that can occur when loading the AppState.
@@ -23,6 +24,20 @@ pub fn map_to_api_error<E: std::fmt::Display>(err: E) -> ApiError {
 
 #[derive(Debug, Error)]
 pub enum ApiError {
+    #[error("Failed to read file {:?}: {source}", path)]
+    FileReadError {
+        #[source]
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
+    #[error("Failed to write file {:?}: {source}", path)]
+    FileWriteError {
+        #[source]
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
     #[allow(dead_code)]
     #[error("Unknown API error: {0}")]
     Unknown(String),

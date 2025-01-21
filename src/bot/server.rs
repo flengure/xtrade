@@ -27,9 +27,9 @@ pub async fn run(args: ServerStartupArgs, app_state: Arc<Mutex<AppState>>) -> st
     drop(app_state_guard); // Explicitly drop the lock to avoid deadlocks later
 
     // Extract server and web configuration with overrides
-    let bind = args.bind.unwrap_or_else(|| config.api.bind.clone());
-    let port = args.port.unwrap_or(config.api.port);
-    let state_file = args.state.unwrap_or_else(|| config.api.state.clone());
+    let api_bind = args.bind.unwrap_or_else(|| config.api.bind.clone());
+    let api_port = args.port.unwrap_or(config.api.port);
+    let api_state = args.state.unwrap_or_else(|| config.api.state.clone());
     let web_enabled = args.web || (!args.no_web && config.client.enabled);
     let web_bind = args.web_bind.unwrap_or_else(|| config.client.bind.clone());
     let web_port = args.web_port.unwrap_or(config.client.port);
@@ -37,7 +37,7 @@ pub async fn run(args: ServerStartupArgs, app_state: Arc<Mutex<AppState>>) -> st
 
     info!(
         "Starting API server on {}:{} with state file: {}",
-        bind, port, state_file
+        api_bind, api_port, api_state
     );
 
     // Start the API server
@@ -46,7 +46,7 @@ pub async fn run(args: ServerStartupArgs, app_state: Arc<Mutex<AppState>>) -> st
             .app_data(web::Data::new(app_state.clone())) // Share the same AppState
             .configure(init_routes) // Add routes
     })
-    .bind((bind.as_str(), port))?
+    .bind((api_bind.as_str(), api_port))?
     .run();
 
     // Conditionally start the Web UI server

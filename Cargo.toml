@@ -27,6 +27,7 @@ validator = { version = "0.19.0", features = ["derive"] }
 validator_derive = "0.19.0"
 prettytable = "0.10.0"
 toml = "0.8.19"
+tempfile = "3.15.0"
 
 [dev-dependencies]
 mockito = "1.6.1"
