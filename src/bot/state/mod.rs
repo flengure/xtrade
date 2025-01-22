@@ -61,8 +61,8 @@
 pub mod input;
 pub mod output;
 pub mod registry;
-pub mod server;
 
+pub use crate::bot::server::ServerStartupArgs;
 pub use input::{BotDeleteArgs, BotGetArgs, BotInsertArgs, BotListArgs, BotUpdateArgs};
 pub use input::{
     ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs,
@@ -70,7 +70,6 @@ pub use input::{
 };
 pub use output::{BotListView, BotView};
 pub use output::{ListenerListView, ListenerView};
-pub use server::ServerStartupArgs;
 
 pub use registry::BotRegistry;
 

@@ -91,6 +91,25 @@ pub async fn run(
     .bind((api_server_bind_address.as_str(), api_server_port))?
     .run();
 
+    info!(
+        "Starting Webhook server on {}:{}",
+        webhook_server_bind_address, webhook_server_port
+    );
+
+    Some(
+        HttpServer::new(move || {
+            App::new().configure(crate::bot::api::endpoints::configure) // Configure webhook routes
+                                                                        // App::new()
+                                                                        //     .app_data(web::Data::new(app_state.clone())) // Share the same AppState
+                                                                        //     .route(
+                                                                        //         "/webhook",
+                                                                        //         web::post().to(crate::webhook::handlers::handle_webhook),
+                                                                        //     ) // Handle POST requests
+        })
+        .bind((webhook_server_bind_address.as_str(), webhook_server_port))?
+        .run(),
+    );
+
     // Conditionally start the Web UI server
     if web_client_enable {
         info!(
