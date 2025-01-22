@@ -21,11 +21,11 @@ pub struct ServerStartupArgs {
     #[arg(long)]
     pub webhook_bind_address: Option<String>,
     /// Enable the Web UI (default)
-    #[arg(long, conflicts_with = "no_web_client")]
-    pub web_client: bool,
+    #[arg(long, conflicts_with = "web_client_disable")]
+    pub web_client_enable: bool,
     /// Disable the Web UI
     #[arg(long, conflicts_with = "web_client")]
-    pub no_web_client: bool,
+    pub web_client_disable: bool,
     #[arg(long)]
     pub web_client_port: Option<u16>,
     #[arg(long)]
@@ -54,19 +54,19 @@ pub async fn run(
     drop(app_state_guard); // Explicitly drop the lock to avoid deadlocks later
 
     // Extract server and web configuration with overrides
-    let api_bind = args
+    let api_server_bind_address = args
         .api_bind_address
         .unwrap_or_else(|| app_config.api_server.bind_address.clone());
-    let api_port = args.api_port.unwrap_or(app_config.api_server.port);
-    let api_state = args
+    let api_server_port = args.api_port.unwrap_or(app_config.api_server.port);
+    let api_server_state_file = args
         .state_file
         .unwrap_or_else(|| app_config.api_server.state_file.clone());
-    let webhook_bind_address = args
+    let webhook_server_bind_address = args
         .webhook_bind_address
-        .unwrap_or_else(|| app_config.webhook.bind_address.clone());
-    let webhook_port = args.webhook_port.unwrap_or(app_config.webhook.port);
-    let web_client_enabled =
-        args.web_client || (!args.no_web_client && app_config.web_client.is_enabled);
+        .unwrap_or_else(|| app_config.webhook_server.bind_address.clone());
+    let webhook_server_port = args.webhook_port.unwrap_or(app_config.webhook_server.port);
+    let web_client_enable =
+        args.web_client_enable || (!args.web_client_disable && app_config.web_client.enable);
     let web_client_bind_address = args
         .web_client_bind_address
         .unwrap_or_else(|| app_config.web_client.bind_address.clone());
@@ -77,7 +77,9 @@ pub async fn run(
 
     info!(
         "Starting API server on {}:{} with state file: {}",
-        api_bind, api_port, api_state
+        api_server_bind_address,
+        api_server_port,
+        api_server_state_file.display()
     );
 
     // Start the API server
@@ -86,21 +88,25 @@ pub async fn run(
             .app_data(web::Data::new(app_state.clone())) // Share the same AppState
             .configure(crate::bot::api::endpoints::configure) // Add routes
     })
-    .bind((api_bind.as_str(), api_port))?
+    .bind((api_server_bind_address.as_str(), api_server_port))?
     .run();
 
     // Conditionally start the Web UI server
-    if web_enabled {
+    if web_client_enable {
         info!(
             "Starting Web UI server on {}:{} serving files from: {}",
-            web_bind, web_port, web_root
+            web_client_bind_address,
+            web_client_port,
+            web_client_static_files.display()
         );
 
         let web_server = HttpServer::new(move || {
-            App::new().service(fs::Files::new("/", web_root.clone()).index_file("index.html"))
+            App::new().service(
+                fs::Files::new("/", web_client_static_files.clone()).index_file("index.html"),
+            )
             // Serve static files
         })
-        .bind((web_bind.as_str(), web_port))?
+        .bind((web_client_bind_address.as_str(), web_client_port))?
         .run();
 
         // Run both servers concurrently

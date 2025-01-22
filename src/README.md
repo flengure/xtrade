@@ -5,38 +5,29 @@
 
 ```mermaid
 ---
-Entity Relationship
+System Interaction and Relationships
 ---
-erDiagram
-CONFIG {
-	string api_server_port
-	string api_server_bind_address
-	string api_server_state_file
-	string webhook_server_port
-	string webhook_server_bind_address
-	string web_client_port
-	string web_client_bind_address
-	string web_client_static_files
-}
-CLI {
-	string api_server_port
-	string api_server_bind_address
-	string api_server_state_file
-	string webhook_server_port
-	string webhook_server_bind_address
-	string web_client_port
-	string web_client_bind_address
-	string web_client_static_files
-}
-    SERVER ||--|| "REST" : Provides
-    SERVER ||--|| "Webhook" : Provides
-    SERVER ||--|| "Web Client" : Provides
-    CONFIG ||--|| SERVER : "Defaults"
-    CLI ||--|| SERVER : "Overide Defaults"
-    API ||--|| SERVER : uses
-    API ||--|| STATE : uses
+flowchart TB
+    subgraph ConfigAndCLI["Configuration Sources"]
+        CONFIG[Configuration File]
+        CLI[Command Line Arguments]
+    end
 
+    subgraph Server["Server Modules"]
+        API[API Server]
+        WEBHOOK[Webhook Server]
+        WEBCLIENT[Web Client Server]
+    end
 
+    subgraph StateManagement["Application State"]
+        STATE["State File (Persistent Storage)"]
+    end
 
-
+    CONFIG -- "Provides defaults to" --> Server
+    CLI -- "Overrides defaults in" --> Server
+    Server --> STATE["Reads/Writes"]
+    API -- "Interacts with" --> STATE
+    API -- "Exposes REST Endpoints" --> CLIENTS[External Clients]
+    WEBHOOK -- "Processes Webhooks" --> CLIENTS
+    WEBCLIENT -- "Serves static files" --> USERS[End Users]
 ```
