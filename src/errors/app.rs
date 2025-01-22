@@ -10,6 +10,7 @@ pub enum AppError {
     #[error("Configuration error: {0}")]
     ConfigError(String),
 
+    #[allow(dead_code)]
     #[error("Unknown API error: {0}")]
     Unknown(String),
 
@@ -37,12 +38,15 @@ pub enum AppError {
     #[error("Unexpected response from server: {0}")]
     UnexpectedResponse(String), // HTTP 502
 
+    #[allow(dead_code)]
     #[error("Non-unique result: {0}")]
     NonUniqueResult(String), // HTTP 400
 
+    #[allow(dead_code)]
     #[error("Argument(s) required")]
     ArgumentsRequired, // HTTP 400
 
+    #[allow(dead_code)]
     #[error("Bot ID required")]
     BotIdRequired, // HTTP 400
 
@@ -58,6 +62,7 @@ pub enum AppError {
     #[error("Listener not found: {0}")]
     ListenerNotFound(String), // HTTP 404
 
+    #[allow(dead_code)]
     #[error("Failed to save state: {0}")]
     SaveError(String), // HTTP 500
 
@@ -67,6 +72,7 @@ pub enum AppError {
     #[error("Environment variable {0} is missing or invalid.")]
     EnvVarError(#[from] std::env::VarError),
 
+    #[allow(dead_code)]
     #[error("No file path provided.")]
     NoFilePathProvided,
 
@@ -84,9 +90,11 @@ pub enum AppError {
         path: PathBuf,
     },
 
+    #[allow(dead_code)]
     #[error("State already locked. Failed to acquire lock.")]
     LockError,
 
+    #[allow(dead_code)]
     #[error("Invalid state detected: {0}")]
     InvalidState(String),
 
@@ -144,10 +152,10 @@ impl ResponseError for AppError {
     }
 }
 
-/// Helper to map generic errors into `AppError::InternalServerError`
-pub fn map_to_app_error<E: std::fmt::Display>(err: E) -> AppError {
-    AppError::InternalServerError(err.to_string())
-}
+// /// Helper to map generic errors into `AppError::InternalServerError`
+// pub fn map_to_app_error<E: std::fmt::Display>(err: E) -> AppError {
+//     AppError::InternalServerError(err.to_string())
+// }
 
 use reqwest::Error as ReqwestError;
 

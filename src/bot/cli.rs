@@ -8,7 +8,7 @@ use crate::bot::state::{
     ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs, ListenersDeleteArgs,
     ServerStartupArgs,
 };
-use clap::{ArgGroup, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 // use log::LevelFilter;
 use std::io::{Error, ErrorKind, Result};
 use std::path::PathBuf;
@@ -20,12 +20,6 @@ use std::sync::{Arc, Mutex};
     name = "xtrade",
     about = "CLI tool for managing bots, listeners, and server"
 )]
-#[command(group(
-    ArgGroup::new("backend")
-        .args(&["state", "url"])
-        .required(false)
-        .multiple(false)
-))]
 pub struct Cli {
     /// Verbosity level (-v, -vv, -vvv)
     #[arg(short, long, global = true, action = clap::ArgAction::Count)]

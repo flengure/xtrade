@@ -24,10 +24,15 @@ async fn main() -> std::io::Result<()> {
     // Load AppConfig
     let app_config = AppConfig::load::<&Path>(None).map_err(map_to_io_error)?;
 
+    // println!("{:?}", &app_config);
+
     // Initialize the application state
     let app_state = Arc::new(Mutex::new(
         AppState::load(app_config.clone()).map_err(map_to_io_error)?,
     ));
+
+    // println!("hello2");
+
     let cli = bot::cli::Cli::parse();
     cli.run(app_config, app_state.clone()).await
 }

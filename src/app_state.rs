@@ -41,7 +41,7 @@
 use crate::app_config::AppConfig;
 use crate::bot::model::Bot;
 use crate::errors::AppError;
-use log::{error, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
@@ -52,16 +52,18 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct AppState {
     #[serde(default)]
-    pub bots: HashMap<String, Bot>,
+    pub state_file: PathBuf,
     #[serde(default)]
-    pub config: AppConfig, // Running configuration
+    pub bots: HashMap<String, Bot>,
+    // #[serde(default)]
+    // pub config: AppConfig, // Running configuration
 }
 
 impl Default for AppState {
     fn default() -> Self {
         AppState {
             bots: HashMap::new(),
-            config: AppConfig::default(),
+            state_file: PathBuf::from("state.json"), // Provide a default file path            // config: AppConfig::default(),
         }
     }
 }
@@ -103,12 +105,16 @@ impl AppState {
             });
         }
 
+        // println!("{}", &state_content);
+
         // Deserialize the JSON content into `AppState`
         let mut state: AppState =
             serde_json::from_str(&state_content).map_err(AppError::JsonParseError)?;
 
-        // Update the loaded state with `AppConfig`
-        state.config = app_config;
+        state.state_file = state_file.clone();
+
+        // // Update the loaded state with `AppConfig`
+        // state.config = app_config;
 
         info!("State loaded successfully from: {:?}", state_file);
         Ok(state)
@@ -118,7 +124,7 @@ impl AppState {
     pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), AppError> {
         let state_file = file_path
             .map(|p| p.as_ref().to_path_buf())
-            .or_else(|| Some(self.config.api_server.state_file.clone()))
+            .or_else(|| Some(self.state_file.clone()))
             .ok_or(AppError::FileWriteError {
                 source: std::io::Error::new(ErrorKind::InvalidInput, "No file path provided"),
                 path: PathBuf::from("unknown"),
@@ -126,12 +132,6 @@ impl AppState {
 
         // Serialize the `AppState` to JSON
         let state_json = serde_json::to_string_pretty(self).map_err(AppError::JsonParseError)?;
-
-        // Save the configuration file
-        self.config.save::<&Path>(None).map_err(|e| {
-            error!("Failed to save AppConfig: {}", e);
-            AppError::ConfigError(e.to_string())
-        })?;
 
         // Write the serialized state to the file
         fs::write(&state_file, state_json).map_err(|e| AppError::FileWriteError {

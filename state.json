@@ -1,4 +1,5 @@
 {
+  "state_file": "state.json",
   "bots": {
     "58dadedc-b5ca-4dcd-8949-8ec6d6683d9b": {
       "bot_id": "58dadedc-b5ca-4dcd-8949-8ec6d6683d9b",
@@ -13,29 +14,34 @@
       "private_key": null,
       "contract_address": null,
       "listeners": {}
-    }
-  },
-  "config": {
-    "api_server": {
-      "port": 7762,
-      "bind_address": "127.0.0.1",
-      "state_file": "state.json"
     },
-    "webhook_server": {
-      "port": 7763,
-      "bind_address": "0.0.0.0"
+    "e056abaf-d9b6-444b-ab16-cc2b19b89656": {
+      "bot_id": "e056abaf-d9b6-444b-ab16-cc2b19b89656",
+      "name": "mytest",
+      "exchange": "boogaloo",
+      "api_key": null,
+      "api_secret": null,
+      "rest_endpoint": null,
+      "rpc_endpoint": null,
+      "webhook_secret": null,
+      "trading_fee": null,
+      "private_key": null,
+      "contract_address": null,
+      "listeners": {}
     },
-    "web_client": {
-      "enable": true,
-      "port": 7764,
-      "bind_address": "0.0.0.0",
-      "static_files": "src/webui/dist"
-    },
-    "remote_cli": {
-      "api_url": "http://localhost:7762"
-    },
-    "local_cli": {
-      "state_file": "state.json"
+    "20f37686-485f-4ed9-b4c5-058d763c4017": {
+      "bot_id": "20f37686-485f-4ed9-b4c5-058d763c4017",
+      "name": "mytest",
+      "exchange": "boogaloo",
+      "api_key": null,
+      "api_secret": null,
+      "rest_endpoint": null,
+      "rpc_endpoint": null,
+      "webhook_secret": null,
+      "trading_fee": null,
+      "private_key": null,
+      "contract_address": null,
+      "listeners": {}
     }
   }
 }

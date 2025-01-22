@@ -5,42 +5,53 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ApiServerConfig {
     /// Port number for the API server
+    #[serde(default)]
     pub port: u16,
     /// Address to bind the API server
+    #[serde(default)]
     pub bind_address: String,
     /// File path for the application state
+    #[serde(default)]
     pub state_file: PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct WebhookServerConfig {
     /// Port number for the Webhook Server
+    #[serde(default)]
     pub port: u16,
     /// Address to bind the Webhook Server
+    #[serde(default)]
     pub bind_address: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct WebClientConfig {
     /// Whether the Web Client is enabled
+    #[serde(default)]
     pub enable: bool,
     /// Port number for the Web Client
+    #[serde(default)]
     pub port: u16,
     /// Address to bind the Web Client
+    #[serde(default)]
     pub bind_address: String,
     /// Path to the Web Client's static files
+    #[serde(default)]
     pub static_files: PathBuf,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct RemoteCliConfig {
     /// URL of the remote server for online mode
+    #[serde(default)]
     pub url: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct LocalCliConfig {
     /// File path for the local state file (offline mode)
+    #[serde(default)]
     pub state_file: PathBuf,
 }
 
@@ -53,10 +64,8 @@ pub struct AppConfig {
     /// Configuration for the Web Client
     pub web_client: WebClientConfig,
     /// Configuration for online mode
-    //#[allow(dead_code)]
     pub remote_cli: RemoteCliConfig,
     /// Configuration for offline mode
-    //#[allow(dead_code)]
     pub local_cli: LocalCliConfig,
 }
 

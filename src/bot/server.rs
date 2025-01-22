@@ -86,7 +86,7 @@ pub async fn run(
     let api_server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone())) // Share the same AppState
-            .configure(crate::bot::api::endpoints::configure) // Add routes
+            .configure(crate::bot::api::configure) // Add routes
     })
     .bind((api_server_bind_address.as_str(), api_server_port))?
     .run();
@@ -98,13 +98,13 @@ pub async fn run(
 
     Some(
         HttpServer::new(move || {
-            App::new().configure(crate::bot::api::endpoints::configure) // Configure webhook routes
-                                                                        // App::new()
-                                                                        //     .app_data(web::Data::new(app_state.clone())) // Share the same AppState
-                                                                        //     .route(
-                                                                        //         "/webhook",
-                                                                        //         web::post().to(crate::webhook::handlers::handle_webhook),
-                                                                        //     ) // Handle POST requests
+            App::new().configure(crate::bot::api::configure) // Configure webhook routes
+                                                             // App::new()
+                                                             //     .app_data(web::Data::new(app_state.clone())) // Share the same AppState
+                                                             //     .route(
+                                                             //         "/webhook",
+                                                             //         web::post().to(crate::webhook::handlers::handle_webhook),
+                                                             //     ) // Handle POST requests
         })
         .bind((webhook_server_bind_address.as_str(), webhook_server_port))?
         .run(),

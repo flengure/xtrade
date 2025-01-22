@@ -13,12 +13,6 @@ use actix_web::web;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-// /// Initialize all routes for the API
-// pub fn init_routes(cfg: &mut web::ServiceConfig) {
-//     bots::configure(cfg);
-//     listeners::configure(cfg);
-// }
-
 /// Unified API response structure.
 #[derive(Deserialize, Serialize)]
 pub struct ApiResponse<T> {
