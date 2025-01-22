@@ -1,11 +1,9 @@
 // src/bot/cli/mod.rs
 //pub mod cmd;
 pub mod commands;
-pub mod dispatch;
 pub mod offline;
 pub mod online;
 pub use commands::{Cli, Commands, OfflineCmds};
-pub use dispatch::run;
 
 // use crate::utils::validators::{validate_bind_address, validate_port, validate_url};
 // use clap::{ArgGroup, Parser, Subcommand};

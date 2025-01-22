@@ -69,12 +69,12 @@ impl Default for AppConfig {
                 state_file: PathBuf::from("state.json"),
             },
             webhook_server: WebhookServerConfig {
-                port: 7764,
+                port: 7763,
                 bind_address: "0.0.0.0".to_string(),
             },
             web_client: WebClientConfig {
                 enable: true,
-                port: 7763,
+                port: 7764,
                 bind_address: "0.0.0.0".to_string(),
                 static_files: PathBuf::from("src/webui/dist"),
             },

@@ -1,12 +1,17 @@
 // src/bot/cli/commands.rs
 
+use crate::app_config::AppConfig;
+use crate::app_state::AppState;
+use crate::bot::rest::RestClient;
 use crate::bot::state::{
     BotDeleteArgs, BotGetArgs, BotInsertArgs, BotListArgs, BotUpdateArgs, ListenerDeleteArgs,
     ListenerGetArgs, ListenerInsertArgs, ListenerListArgs, ListenerUpdateArgs, ListenersDeleteArgs,
     ServerStartupArgs,
 };
 use clap::{ArgGroup, Parser, Subcommand};
-use log::LevelFilter;
+// use log::LevelFilter;
+use std::io::{Error, ErrorKind, Result};
+use std::sync::{Arc, Mutex};
 
 /// Command-line interface for xTrade.
 #[derive(Parser, Clone, Debug)]
@@ -38,15 +43,15 @@ pub struct Cli {
 }
 
 impl Cli {
-    /// Determine the log level based on verbosity
-    pub fn log_level(&self) -> LevelFilter {
-        match self.verbose {
-            0 => LevelFilter::Warn,
-            1 => LevelFilter::Info,
-            2 => LevelFilter::Debug,
-            _ => LevelFilter::Trace,
-        }
-    }
+    // /// Determine the log level based on verbosity
+    // pub fn log_level(&self) -> LevelFilter {
+    //     match self.verbose {
+    //         0 => LevelFilter::Warn,
+    //         1 => LevelFilter::Info,
+    //         2 => LevelFilter::Debug,
+    //         _ => LevelFilter::Trace,
+    //     }
+    // }
 
     /// Determine the CLI mode (offline or server)
     pub fn mode(&self) -> &str {
@@ -54,6 +59,19 @@ impl Cli {
             Commands::Server { .. } => "server",
             Commands::Offline { .. } => "offline",
             _ => "online", // Default to "online" for all other commands
+        }
+    }
+
+    /// Handles the CLI commands and modes
+    pub async fn run(&self, app_config: AppConfig, app_state: Arc<Mutex<AppState>>) -> Result<()> {
+        match self.mode() {
+            "server" => run_server_mode(self.clone(), app_config, app_state).await,
+            "offline" => run_offline_mode(self.clone(), app_state).await,
+            "online" => run_online_mode(self.clone()).await,
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Unknown or unsupported mode.",
+            )),
         }
     }
 }
@@ -100,4 +118,43 @@ pub enum OfflineCmds {
     UpdateListener(ListenerUpdateArgs),
     DeleteListener(ListenerDeleteArgs),
     DeleteListeners(ListenersDeleteArgs),
+}
+
+/// Handle server mode
+async fn run_server_mode(
+    cli: Cli,
+    app_config: AppConfig,
+    app_state: Arc<Mutex<AppState>>,
+) -> Result<()> {
+    if let Commands::Server(server_args) = cli.command {
+        super::server::run(server_args, app_config, app_state).await?;
+        Ok(())
+    } else {
+        Err(Error::new(
+            ErrorKind::InvalidInput,
+            "Invalid command for server mode.",
+        ))
+    }
+}
+
+/// Handle offline mode
+async fn run_offline_mode(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
+    if let Commands::Offline { offline_command } = cli.command {
+        super::local_client::run(offline_command, app_state)
+            .await
+            .map_err(|err| Error::new(ErrorKind::Other, err))
+    } else {
+        Err(Error::new(
+            ErrorKind::InvalidInput,
+            "Invalid command for offline mode.",
+        ))
+    }
+}
+
+/// Handle online mode
+async fn run_online_mode(cli: Cli) -> Result<()> {
+    let rest_client = RestClient::new(&cli.url.unwrap());
+    super::remote_client::run(cli.command, rest_client)
+        .await
+        .map_err(|err| Error::new(ErrorKind::Other, err))
 }

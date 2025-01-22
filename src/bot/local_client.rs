@@ -1,4 +1,4 @@
-use super::OfflineCmds;
+use super::cli::OfflineCmds;
 use crate::bot::state::AppState;
 use crate::bot::state::BotRegistry;
 use crate::errors::ApiError;

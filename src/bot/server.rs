@@ -24,7 +24,7 @@ pub struct ServerStartupArgs {
     #[arg(long, conflicts_with = "web_client_disable")]
     pub web_client_enable: bool,
     /// Disable the Web UI
-    #[arg(long, conflicts_with = "web_client")]
+    #[arg(long, conflicts_with = "web_client_enable")]
     pub web_client_disable: bool,
     #[arg(long)]
     pub web_client_port: Option<u16>,
