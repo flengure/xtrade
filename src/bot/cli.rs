@@ -1,6 +1,6 @@
 // src/bot/cli/commands.rs
 
-use crate::app_config::AppConfig;
+use crate::app_config::{AppConfig, LocalCliConfig, RemoteCliConfig};
 use crate::app_state::AppState;
 use crate::bot::rest::RestClient;
 use crate::bot::state::{
@@ -66,8 +66,8 @@ impl Cli {
     pub async fn run(&self, app_config: AppConfig, app_state: Arc<Mutex<AppState>>) -> Result<()> {
         match self.mode() {
             "server" => run_server_mode(self.clone(), app_config, app_state).await,
-            "offline" => run_offline_mode(self.clone(), app_state).await,
-            "online" => run_online_mode(self.clone()).await,
+            "offline" => run_offline_mode(self.clone(), app_config.local_cli, app_state).await,
+            "online" => run_online_mode(self.clone(), app_config.remote_cli).await,
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Unknown or unsupported mode.",
@@ -138,9 +138,13 @@ async fn run_server_mode(
 }
 
 /// Handle offline mode
-async fn run_offline_mode(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
+async fn run_offline_mode(
+    cli: Cli,
+    local_cli_config: LocalCliConfig,
+    app_state: Arc<Mutex<AppState>>,
+) -> Result<()> {
     if let Commands::Offline { offline_command } = cli.command {
-        super::local_client::run(offline_command, app_state)
+        super::local_client::run(offline_command, local_cli_config, app_state)
             .await
             .map_err(|err| Error::new(ErrorKind::Other, err))
     } else {
@@ -152,8 +156,8 @@ async fn run_offline_mode(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<(
 }
 
 /// Handle online mode
-async fn run_online_mode(cli: Cli) -> Result<()> {
-    let rest_client = RestClient::new(&cli.url.unwrap());
+async fn run_online_mode(cli: Cli, remote_cli_config: RemoteCliConfig) -> Result<()> {
+    let rest_client = RestClient::new(&cli.url.unwrap_or(remote_cli_config.url));
     super::remote_client::run(cli.command, rest_client)
         .await
         .map_err(|err| Error::new(ErrorKind::Other, err))

@@ -109,7 +109,7 @@ pub fn setup_logger() -> Result<(), fern::InitError> {
         .chain(std::io::stdout())
         .apply()?;
 
-    println!("Set log level to {:?}", level);
+    log::info!("Set log level to {:?}", level);
 
     Ok(())
 }

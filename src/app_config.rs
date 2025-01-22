@@ -35,7 +35,7 @@ pub struct WebClientConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct RemoteCliConfig {
     /// URL of the remote server for online mode
-    pub api_url: String,
+    pub url: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -79,7 +79,7 @@ impl Default for AppConfig {
                 static_files: PathBuf::from("src/webui/dist"),
             },
             remote_cli: RemoteCliConfig {
-                api_url: "http://localhost:7762".to_string(),
+                url: "http://localhost:7762".to_string(),
             },
             local_cli: LocalCliConfig {
                 state_file: PathBuf::from("state.json"),
@@ -167,7 +167,7 @@ mod tests {
             PathBuf::from("src/webui/dist")
         );
 
-        assert_eq!(default_config.remote_cli.api_url, "http://localhost:7762");
+        assert_eq!(default_config.remote_cli.url, "http://localhost:7762");
         assert_eq!(
             default_config.local_cli.state_file,
             PathBuf::from("state.json")

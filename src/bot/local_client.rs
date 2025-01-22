@@ -1,12 +1,18 @@
 use super::cli::OfflineCmds;
+use crate::app_config::LocalCliConfig;
 use crate::bot::state::AppState;
 use crate::bot::state::BotRegistry;
 use crate::errors::ApiError;
 use std::sync::{Arc, Mutex};
 
 /// Handle CLI commands in offline mode
-pub async fn run(args: OfflineCmds, state: Arc<Mutex<AppState>>) -> Result<(), ApiError> {
+pub async fn run(
+    args: OfflineCmds,
+    local_cli_config: LocalCliConfig,
+    state: Arc<Mutex<AppState>>,
+) -> Result<(), ApiError> {
     // Acquire the lock on the AppState
+    let _ = local_cli_config;
     let mut app_state = state.lock().map_err(|_| {
         ApiError::InternalServerError("Failed to acquire lock on AppState.".to_string())
     })?;

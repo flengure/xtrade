@@ -14,7 +14,7 @@ bind_address = "0.0.0.0"
 static_files = "src/webui/dist"
 
 [remote_cli]
-api_url = "http://localhost:7762"
+url = "http://localhost:7762"
 
 [local_cli]
 state_file = "state.json"
