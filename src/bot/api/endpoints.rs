@@ -2,7 +2,7 @@
 use crate::bot::api::{acquire_lock, apply_pagination, create_api_response, Pagination};
 pub use crate::bot::state::BotGetArgs;
 use crate::bot::state::BotRegistry;
-use crate::errors::ApiError;
+use crate::errors::AppError;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use std::sync::{Arc, Mutex};
 
@@ -31,7 +31,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 async fn add_bot(
     data: web::Data<Arc<Mutex<AppState>>>,
     json_data: Result<web::Json<BotInsertArgs>, actix_web::Error>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let mut state = acquire_lock(&data)?;
     match json_data {
         Ok(good_json_data) => {
@@ -45,7 +45,7 @@ async fn add_bot(
         }
         Err(e) => {
             log::error!("Failed to deserialize input: {}", e);
-            Err(ApiError::InvalidInput("Invalid input payload".to_string()))
+            Err(AppError::InvalidInput("Invalid input payload".to_string()))
         }
     }
 }
@@ -55,7 +55,7 @@ async fn get_bots(
     data: web::Data<Arc<Mutex<AppState>>>,
     query: Option<web::Query<Pagination>>, // Pagination query is optional
     filter: Option<web::Json<BotListArgs>>, // Optional filter in the request body
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     // Use default pagination values if none are provided
     let pagination = query.unwrap_or_else(|| {
         web::Query(Pagination {
@@ -98,7 +98,7 @@ async fn get_bots(
 async fn get_bot(
     data: web::Data<Arc<Mutex<AppState>>>,
     bot_id: web::Path<String>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let state = acquire_lock(&data)?;
     let bot = state.get_bot(BotGetArgs::new(&bot_id))?;
     let api_response = create_api_response(true, Some(bot), None);
@@ -110,7 +110,7 @@ async fn update_bot(
     data: web::Data<Arc<Mutex<AppState>>>,
     bot_id: web::Path<String>,
     json_data: Result<web::Json<BotUpdateArgs>, actix_web::Error>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let mut state = acquire_lock(&data)?;
     match json_data {
         Ok(good_json_data) => {
@@ -122,7 +122,7 @@ async fn update_bot(
         }
         Err(e) => {
             log::error!("Failed to deserialize input: {}", e);
-            Err(ApiError::InvalidInput("Invalid input payload".to_string()))
+            Err(AppError::InvalidInput("Invalid input payload".to_string()))
         }
     }
 }
@@ -131,7 +131,7 @@ async fn update_bot(
 async fn delete_bot(
     data: web::Data<Arc<Mutex<AppState>>>,
     bot_id: web::Path<String>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let mut state = acquire_lock(&data)?;
     state.delete_bot(BotDeleteArgs::new(&bot_id))?;
     let api_response =
@@ -144,7 +144,7 @@ async fn add_listener(
     data: web::Data<Arc<Mutex<AppState>>>,
     bot_id: web::Path<String>,
     json_data: Result<web::Json<ListenerInsertArgs>, actix_web::Error>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let mut state = acquire_lock(&data)?;
     match json_data {
         Ok(good_json_data) => {
@@ -156,7 +156,7 @@ async fn add_listener(
         }
         Err(e) => {
             log::error!("Failed to deserialize input: {}", e);
-            Err(ApiError::InvalidInput("Invalid input payload".to_string()))
+            Err(AppError::InvalidInput("Invalid input payload".to_string()))
         }
     }
 }
@@ -166,7 +166,7 @@ async fn list_listeners(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<String>,
     json_data: Option<web::Json<ListenerListArgs>>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let bot_id = path.into_inner();
     let select_request = json_data
         .map(|payload| payload.into_inner())
@@ -178,7 +178,7 @@ async fn list_listeners(
     drop(state);
 
     if selected_list.0.is_empty() {
-        return Err(ApiError::ListenerNotFound(
+        return Err(AppError::ListenerNotFound(
             "No matching listeners found.".to_string(),
         ));
     }
@@ -191,7 +191,7 @@ async fn list_listeners(
 async fn get_listener(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<(String, String)>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let (bot_id, listener_id) = path.into_inner();
     let state = acquire_lock(&data)?;
 
@@ -208,7 +208,7 @@ async fn get_listener(
 async fn update_listener(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<(String, String)>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let (bot_id, listener_id) = path.into_inner();
     let mut state = acquire_lock(&data)?;
     state.update_listener(ListenerUpdateArgs::new(&bot_id, &listener_id))?;
@@ -224,7 +224,7 @@ async fn update_listener(
 async fn delete_listener(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<(String, String)>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let (bot_id, listener_id) = path.into_inner();
     let mut state = acquire_lock(&data)?;
     //let args = ListenerDeleteArgs::new(bot_id, listener_id);
@@ -243,7 +243,7 @@ async fn delete_listeners(
     data: web::Data<Arc<Mutex<AppState>>>,
     path: web::Path<String>,
     json_data: Option<web::Json<ListenersDeleteArgs>>,
-) -> Result<impl Responder, ApiError> {
+) -> Result<impl Responder, AppError> {
     let bot_id = path.into_inner();
     let mut delete_request = json_data
         .map(|payload| payload.into_inner())
@@ -255,7 +255,7 @@ async fn delete_listeners(
     drop(state);
 
     if deleted_list.0.is_empty() {
-        return Err(ApiError::ListenerNotFound(
+        return Err(AppError::ListenerNotFound(
             "No matching listeners found.".to_string(),
         ));
     }

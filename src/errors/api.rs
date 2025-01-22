@@ -1,6 +1,7 @@
-// src/errors.rs
+// src/errors/api.rs
 
 //use super::ServerError;
+use crate::errors::AppError;
 use crate::errors::ServerError;
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
@@ -23,6 +24,9 @@ pub fn map_to_api_error<E: std::fmt::Display>(err: E) -> ApiError {
 
 #[derive(Debug, Error)]
 pub enum ApiError {
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+
     #[allow(dead_code)]
     #[error("Unknown API error: {0}")]
     Unknown(String),
@@ -188,5 +192,11 @@ impl From<ServerError> for ApiError {
             }
             ServerError::Other(msg) => ApiError::InternalServerError(msg),
         }
+    }
+}
+
+impl From<config::ConfigError> for ApiError {
+    fn from(err: config::ConfigError) -> Self {
+        ApiError::ConfigError(format!("{}", err))
     }
 }

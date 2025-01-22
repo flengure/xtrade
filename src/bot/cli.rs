@@ -1,6 +1,6 @@
 // src/bot/cli/commands.rs
 
-use crate::app_config::{AppConfig, LocalCliConfig, RemoteCliConfig};
+use crate::app_config::AppConfig;
 use crate::app_state::AppState;
 use crate::bot::rest::RestClient;
 use crate::bot::state::{
@@ -11,6 +11,7 @@ use crate::bot::state::{
 use clap::{ArgGroup, Parser, Subcommand};
 // use log::LevelFilter;
 use std::io::{Error, ErrorKind, Result};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 /// Command-line interface for xTrade.
@@ -30,12 +31,8 @@ pub struct Cli {
     #[arg(short, long, global = true, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// Use a local state file (future-proof for DB)
-    #[arg(long, global = true)]
-    pub state: Option<String>,
-
     /// Use a remote REST API endpoint
-    #[arg(long, global = true)]
+    #[arg(long)]
     pub url: Option<String>,
 
     #[command(subcommand)]
@@ -43,16 +40,6 @@ pub struct Cli {
 }
 
 impl Cli {
-    // /// Determine the log level based on verbosity
-    // pub fn log_level(&self) -> LevelFilter {
-    //     match self.verbose {
-    //         0 => LevelFilter::Warn,
-    //         1 => LevelFilter::Info,
-    //         2 => LevelFilter::Debug,
-    //         _ => LevelFilter::Trace,
-    //     }
-    // }
-
     /// Determine the CLI mode (offline or server)
     pub fn mode(&self) -> &str {
         match &self.command {
@@ -66,8 +53,8 @@ impl Cli {
     pub async fn run(&self, app_config: AppConfig, app_state: Arc<Mutex<AppState>>) -> Result<()> {
         match self.mode() {
             "server" => run_server_mode(self.clone(), app_config, app_state).await,
-            "offline" => run_offline_mode(self.clone(), app_config.local_cli, app_state).await,
-            "online" => run_online_mode(self.clone(), app_config.remote_cli).await,
+            "offline" => run_offline_mode(self.clone()).await,
+            "online" => run_online_mode(self.clone(), app_config).await,
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Unknown or unsupported mode.",
@@ -80,6 +67,10 @@ impl Cli {
 pub enum Commands {
     /// Offline mode commands
     Offline {
+        /// Use a local state file (future-proof for DB)
+        #[arg(long)]
+        state_file: Option<PathBuf>,
+
         #[command(subcommand)]
         offline_command: OfflineCmds,
     },
@@ -138,13 +129,16 @@ async fn run_server_mode(
 }
 
 /// Handle offline mode
-async fn run_offline_mode(
-    cli: Cli,
-    local_cli_config: LocalCliConfig,
-    app_state: Arc<Mutex<AppState>>,
-) -> Result<()> {
-    if let Commands::Offline { offline_command } = cli.command {
-        super::local_client::run(offline_command, local_cli_config, app_state)
+async fn run_offline_mode(cli: Cli) -> Result<()> {
+    if let Commands::Offline {
+        state_file,
+        offline_command,
+    } = cli.command
+    {
+        // Convert state_file from Option<PathBuf> to Option<&Path>
+        let state_file = state_file.as_deref();
+
+        super::local_client::run(state_file, offline_command)
             .await
             .map_err(|err| Error::new(ErrorKind::Other, err))
     } else {
@@ -156,8 +150,8 @@ async fn run_offline_mode(
 }
 
 /// Handle online mode
-async fn run_online_mode(cli: Cli, remote_cli_config: RemoteCliConfig) -> Result<()> {
-    let rest_client = RestClient::new(&cli.url.unwrap_or(remote_cli_config.url));
+async fn run_online_mode(cli: Cli, app_config: AppConfig) -> Result<()> {
+    let rest_client = RestClient::new(&cli.url.unwrap_or(app_config.remote_cli.url));
     super::remote_client::run(cli.command, rest_client)
         .await
         .map_err(|err| Error::new(ErrorKind::Other, err))

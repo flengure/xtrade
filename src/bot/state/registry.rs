@@ -3,39 +3,39 @@ use crate::bot::state::{
     BotUpdateArgs, BotView, Listener, ListenerDeleteArgs, ListenerGetArgs, ListenerInsertArgs,
     ListenerListArgs, ListenerListView, ListenerUpdateArgs, ListenerView, ListenersDeleteArgs,
 };
-use crate::errors::ApiError;
+use crate::errors::AppError;
 use log::info;
 use std::path::PathBuf;
 
 pub trait BotRegistry {
     // Bot-related utils
-    fn get_bot_mut(&mut self, bot_id: &str) -> Result<&mut Bot, ApiError>;
-    fn get_bot_ref(&self, bot_id: &str) -> Result<&Bot, ApiError>;
-    fn add_bot(&mut self, args: BotInsertArgs) -> Result<BotView, ApiError>;
-    fn list_bots(&self, args: Option<BotListArgs>) -> Result<BotListView, ApiError>;
-    fn get_bot(&self, args: BotGetArgs) -> Result<BotView, ApiError>;
-    fn update_bot(&mut self, args: BotUpdateArgs) -> Result<BotView, ApiError>;
-    fn delete_bot(&mut self, args: BotDeleteArgs) -> Result<BotView, ApiError>;
-    fn validate_bot_id(&self, bot_id: &str) -> Result<(), ApiError>;
+    fn get_bot_mut(&mut self, bot_id: &str) -> Result<&mut Bot, AppError>;
+    fn get_bot_ref(&self, bot_id: &str) -> Result<&Bot, AppError>;
+    fn add_bot(&mut self, args: BotInsertArgs) -> Result<BotView, AppError>;
+    fn list_bots(&self, args: Option<BotListArgs>) -> Result<BotListView, AppError>;
+    fn get_bot(&self, args: BotGetArgs) -> Result<BotView, AppError>;
+    fn update_bot(&mut self, args: BotUpdateArgs) -> Result<BotView, AppError>;
+    fn delete_bot(&mut self, args: BotDeleteArgs) -> Result<BotView, AppError>;
+    fn validate_bot_id(&self, bot_id: &str) -> Result<(), AppError>;
 
     // Listener-related methods
     fn get_listener_mut(
         &mut self,
         bot_id: &str,
         listener_id: &str,
-    ) -> Result<&mut Listener, ApiError>;
-    fn get_listener_ref(&self, bot_id: &str, listener_id: &str) -> Result<&Listener, ApiError>;
-    fn add_listener(&mut self, args: ListenerInsertArgs) -> Result<ListenerView, ApiError>;
-    fn list_listeners(&self, args: ListenerListArgs) -> Result<ListenerListView, ApiError>;
-    fn get_listener(&self, args: ListenerGetArgs) -> Result<ListenerView, ApiError>;
-    fn update_listener(&mut self, args: ListenerUpdateArgs) -> Result<ListenerView, ApiError>;
-    fn delete_listener(&mut self, args: ListenerDeleteArgs) -> Result<ListenerView, ApiError>;
+    ) -> Result<&mut Listener, AppError>;
+    fn get_listener_ref(&self, bot_id: &str, listener_id: &str) -> Result<&Listener, AppError>;
+    fn add_listener(&mut self, args: ListenerInsertArgs) -> Result<ListenerView, AppError>;
+    fn list_listeners(&self, args: ListenerListArgs) -> Result<ListenerListView, AppError>;
+    fn get_listener(&self, args: ListenerGetArgs) -> Result<ListenerView, AppError>;
+    fn update_listener(&mut self, args: ListenerUpdateArgs) -> Result<ListenerView, AppError>;
+    fn delete_listener(&mut self, args: ListenerDeleteArgs) -> Result<ListenerView, AppError>;
     fn delete_listeners(&mut self, args: ListenersDeleteArgs)
-        -> Result<ListenerListView, ApiError>;
+        -> Result<ListenerListView, AppError>;
 
     // Utility methods for clearing data
-    fn clear_bots(&mut self) -> Result<(), ApiError>;
-    fn clear_listeners(&mut self) -> Result<(), ApiError>;
+    fn clear_bots(&mut self) -> Result<(), AppError>;
+    fn clear_listeners(&mut self) -> Result<(), AppError>;
 }
 
 /// These are the primary state management functions
@@ -47,40 +47,40 @@ pub trait BotRegistry {
 ///
 impl BotRegistry for AppState {
     // Bot methods
-    fn get_bot_mut(&mut self, bot_id: &str) -> Result<&mut Bot, ApiError> {
+    fn get_bot_mut(&mut self, bot_id: &str) -> Result<&mut Bot, AppError> {
         self.bots
             .get_mut(bot_id)
-            .ok_or_else(|| ApiError::BotNotFound(format!("Bot with ID '{}' not found.", bot_id)))
+            .ok_or_else(|| AppError::BotNotFound(format!("Bot with ID '{}' not found.", bot_id)))
     }
 
-    fn get_bot_ref(&self, bot_id: &str) -> Result<&Bot, ApiError> {
+    fn get_bot_ref(&self, bot_id: &str) -> Result<&Bot, AppError> {
         self.bots
             .get(bot_id)
-            .ok_or_else(|| ApiError::BotNotFound(format!("Bot with ID '{}' not found.", bot_id)))
+            .ok_or_else(|| AppError::BotNotFound(format!("Bot with ID '{}' not found.", bot_id)))
     }
 
     fn get_listener_mut(
         &mut self,
         bot_id: &str,
         listener_id: &str,
-    ) -> Result<&mut Listener, ApiError> {
+    ) -> Result<&mut Listener, AppError> {
         self.get_bot_mut(bot_id)?
             .listeners
             .get_mut(listener_id)
             .ok_or_else(|| {
-                ApiError::BotNotFound(format!(
+                AppError::BotNotFound(format!(
                     "Listener with ID '{}' and Bot ID '{}' not found.",
                     listener_id, bot_id
                 ))
             })
     }
 
-    fn get_listener_ref(&self, bot_id: &str, listener_id: &str) -> Result<&Listener, ApiError> {
+    fn get_listener_ref(&self, bot_id: &str, listener_id: &str) -> Result<&Listener, AppError> {
         self.get_bot_ref(bot_id)?
             .listeners
             .get(listener_id)
             .ok_or_else(|| {
-                ApiError::NotFound(format!(
+                AppError::NotFound(format!(
                     "Listener with ID '{}' not found in bot '{}'.",
                     listener_id, bot_id
                 ))
@@ -88,14 +88,14 @@ impl BotRegistry for AppState {
     }
 
     /// Utility: Validate a bot ID.
-    fn validate_bot_id(&self, bot_id: &str) -> Result<(), ApiError> {
+    fn validate_bot_id(&self, bot_id: &str) -> Result<(), AppError> {
         (!bot_id.trim().is_empty())
             .then_some(())
-            .ok_or_else(|| ApiError::ValidationError("Bot ID cannot be empty.".to_string()))
+            .ok_or_else(|| AppError::ValidationError("Bot ID cannot be empty.".to_string()))
     }
 
     /// Clear all bots and save the updated state.
-    fn clear_bots(&mut self) -> Result<(), ApiError> {
+    fn clear_bots(&mut self) -> Result<(), AppError> {
         self.bots.clear();
         self.save::<PathBuf>(None)?;
         info!("Successfully cleared all bots.");
@@ -103,7 +103,7 @@ impl BotRegistry for AppState {
     }
 
     /// Clear all listeners from all bots and save the updated state.
-    fn clear_listeners(&mut self) -> Result<(), ApiError> {
+    fn clear_listeners(&mut self) -> Result<(), AppError> {
         for bot in self.bots.values_mut() {
             bot.listeners.clear();
         }
@@ -114,10 +114,10 @@ impl BotRegistry for AppState {
 
     /// Add a bot to the application state.
     /// base add_bot function
-    fn add_bot(&mut self, args: BotInsertArgs) -> Result<BotView, ApiError> {
+    fn add_bot(&mut self, args: BotInsertArgs) -> Result<BotView, AppError> {
         let bot: Bot = args.into();
         if self.bots.contains_key(&bot.bot_id) {
-            return Err(ApiError::BotAlreadyExists(bot.bot_id.clone()));
+            return Err(AppError::BotAlreadyExists(bot.bot_id.clone()));
         }
         self.bots.insert(bot.bot_id.clone(), bot.clone());
         self.save::<PathBuf>(None)?;
@@ -125,7 +125,7 @@ impl BotRegistry for AppState {
     }
 
     /// List all bots, optionally filtering by provided arguments.
-    fn list_bots(&self, args: Option<BotListArgs>) -> Result<BotListView, ApiError> {
+    fn list_bots(&self, args: Option<BotListArgs>) -> Result<BotListView, AppError> {
         let filtered_bots: Vec<BotView> = self
             .bots
             .values()
@@ -133,18 +133,18 @@ impl BotRegistry for AppState {
             .map(|bot| bot.clone().into())
             .collect();
         if filtered_bots.is_empty() {
-            return Err(ApiError::NotFound("No bots found.".to_string()));
+            return Err(AppError::NotFound("No bots found.".to_string()));
         }
         Ok(BotListView(filtered_bots))
     }
 
     /// Get a specific bot by ID.
-    fn get_bot(&self, args: BotGetArgs) -> Result<BotView, ApiError> {
+    fn get_bot(&self, args: BotGetArgs) -> Result<BotView, AppError> {
         self.get_bot_ref(&args.bot_id).map(|bot| bot.clone().into())
     }
 
     /// Update an existing bot.
-    fn update_bot(&mut self, args: BotUpdateArgs) -> Result<BotView, ApiError> {
+    fn update_bot(&mut self, args: BotUpdateArgs) -> Result<BotView, AppError> {
         let bot_clone = {
             // Retrieve the bot mutably and apply updates
             let bot = self.get_bot_mut(&args.bot_id)?;
@@ -160,16 +160,16 @@ impl BotRegistry for AppState {
     }
 
     /// Delete a bot and return its view.
-    fn delete_bot(&mut self, args: BotDeleteArgs) -> Result<BotView, ApiError> {
+    fn delete_bot(&mut self, args: BotDeleteArgs) -> Result<BotView, AppError> {
         let bot = self.bots.remove(&args.bot_id).ok_or_else(|| {
-            ApiError::BotNotFound(format!("Bot with ID '{}' not found.", &args.bot_id))
+            AppError::BotNotFound(format!("Bot with ID '{}' not found.", &args.bot_id))
         })?;
         self.save::<PathBuf>(None)?;
         Ok(bot.into())
     }
 
     /// Add a listener to a bot.
-    fn add_listener(&mut self, args: ListenerInsertArgs) -> Result<ListenerView, ApiError> {
+    fn add_listener(&mut self, args: ListenerInsertArgs) -> Result<ListenerView, AppError> {
         let bot = self.get_bot_mut(&args.bot_id)?;
         let listener_id = args
             .listener_id
@@ -186,7 +186,7 @@ impl BotRegistry for AppState {
     }
 
     /// List listeners for a bot, optionally filtering by arguments.
-    fn list_listeners(&self, args: ListenerListArgs) -> Result<ListenerListView, ApiError> {
+    fn list_listeners(&self, args: ListenerListArgs) -> Result<ListenerListView, AppError> {
         self.validate_bot_id(&args.bot_id)?;
         let bot = self.get_bot_ref(&args.bot_id)?;
 
@@ -198,7 +198,7 @@ impl BotRegistry for AppState {
             .collect();
 
         if filtered_listeners.is_empty() {
-            return Err(ApiError::ListenerNotFound(
+            return Err(AppError::ListenerNotFound(
                 "No matching listeners found.".to_string(),
             ));
         }
@@ -206,7 +206,7 @@ impl BotRegistry for AppState {
     }
 
     /// Get a specific listener by bot ID and listener ID.
-    fn get_listener(&self, args: ListenerGetArgs) -> Result<ListenerView, ApiError> {
+    fn get_listener(&self, args: ListenerGetArgs) -> Result<ListenerView, AppError> {
         Ok((
             args.bot_id.clone(),
             args.listener_id.clone(),
@@ -216,7 +216,7 @@ impl BotRegistry for AppState {
     }
 
     /// Update a specific listener by bot ID and listener ID.
-    fn update_listener(&mut self, args: ListenerUpdateArgs) -> Result<ListenerView, ApiError> {
+    fn update_listener(&mut self, args: ListenerUpdateArgs) -> Result<ListenerView, AppError> {
         let updated_listener_view = {
             let listener = self.get_listener_mut(&args.bot_id, &args.listener_id)?;
             // Apply updates to the listener
@@ -232,10 +232,10 @@ impl BotRegistry for AppState {
     }
 
     /// Delete a specific listener by bot ID and listener ID.
-    fn delete_listener(&mut self, args: ListenerDeleteArgs) -> Result<ListenerView, ApiError> {
+    fn delete_listener(&mut self, args: ListenerDeleteArgs) -> Result<ListenerView, AppError> {
         let bot = self.get_bot_mut(&args.bot_id)?;
         let listener = bot.listeners.remove(&args.listener_id).ok_or_else(|| {
-            ApiError::ListenerNotFound(format!(
+            AppError::ListenerNotFound(format!(
                 "Listener with ID '{}' not found in bot '{}'.",
                 args.listener_id, args.bot_id
             ))
@@ -247,7 +247,7 @@ impl BotRegistry for AppState {
     fn delete_listeners(
         &mut self,
         args: ListenersDeleteArgs,
-    ) -> Result<ListenerListView, ApiError> {
+    ) -> Result<ListenerListView, AppError> {
         let mut deleted_listeners = Vec::new();
 
         // Retrieve the bot and validate its existence
@@ -266,7 +266,7 @@ impl BotRegistry for AppState {
 
         // Check if any listeners were deleted
         if deleted_listeners.is_empty() {
-            return Err(ApiError::ListenerNotFound(
+            return Err(AppError::ListenerNotFound(
                 "No matching listeners found.".to_string(),
             ));
         }

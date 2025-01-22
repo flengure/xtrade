@@ -2,7 +2,7 @@ pub use crate::bot::state::{
     BotInsertArgs, BotListArgs, BotListView, BotUpdateArgs, BotView, ListenerInsertArgs,
     ListenerListArgs, ListenerListView, ListenerUpdateArgs, ListenerView,
 };
-use crate::errors::ApiError;
+use crate::errors::AppError;
 use log::{error, info};
 use reqwest::{Client, Method, Response};
 
@@ -27,7 +27,7 @@ impl RestClient {
         method: Method,
         url: &str,
         body: Option<T>,
-    ) -> Result<Response, ApiError> {
+    ) -> Result<Response, AppError> {
         info!("Sending {:?} request to URL: {}", method, url);
 
         let request = self.client.request(method, url);
@@ -41,7 +41,7 @@ impl RestClient {
 
         request.send().await.map_err(|e| {
             error!("Request to {} failed: {}", url, e);
-            ApiError::ConnectionError(format!("Failed to send request: {}", e))
+            AppError::ConnectionError(format!("Failed to send request: {}", e))
         })
     }
 
@@ -73,7 +73,7 @@ impl RestClient {
     // }
 
     /// Add a new bot.
-    pub async fn add_bot(&self, bot: BotInsertArgs) -> Result<reqwest::Response, ApiError> {
+    pub async fn add_bot(&self, bot: BotInsertArgs) -> Result<reqwest::Response, AppError> {
         self.send_request(Method::POST, &format!("{}/bots", self.base_url), Some(&bot))
             .await
     }
@@ -84,9 +84,9 @@ impl RestClient {
         page: Option<u32>,
         limit: Option<u32>,
         filter: Option<BotListArgs>,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         let mut url = reqwest::Url::parse(&format!("{}/bots", self.base_url))
-            .map_err(|e| ApiError::ConnectionError(format!("Invalid URL: {}", e)))?;
+            .map_err(|e| AppError::ConnectionError(format!("Invalid URL: {}", e)))?;
 
         // Add query parameters for pagination if they are provided
         if let Some(page_val) = page {
@@ -101,7 +101,7 @@ impl RestClient {
         // Serialize the filter into JSON (if provided)
         let body = filter
             .map(|f| {
-                serde_json::to_value(f).map_err(|e| ApiError::SerializationError(e.to_string()))
+                serde_json::to_value(f).map_err(|e| AppError::SerializationError(e.to_string()))
             })
             .transpose()?;
 
@@ -110,7 +110,7 @@ impl RestClient {
     }
 
     /// Retrieve a single bot by its ID.
-    pub async fn get_bot(&self, bot_id: &str) -> Result<reqwest::Response, ApiError> {
+    pub async fn get_bot(&self, bot_id: &str) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::GET,
             &format!("{}/bots/{}", self.base_url, bot_id),
@@ -124,7 +124,7 @@ impl RestClient {
         &self,
         bot_id: &str,
         update_data: BotUpdateArgs,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::PUT,
             &format!("{}/bots/{}", self.base_url, bot_id),
@@ -134,7 +134,7 @@ impl RestClient {
     }
 
     /// Delete a bot by ID.
-    pub async fn delete_bot(&self, bot_id: &str) -> Result<reqwest::Response, ApiError> {
+    pub async fn delete_bot(&self, bot_id: &str) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::DELETE,
             &format!("{}/bots/{}", self.base_url, bot_id),
@@ -148,7 +148,7 @@ impl RestClient {
         &self,
         bot_id: &str,
         args: ListenerInsertArgs,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::POST,
             &format!("{}/bots/{}/listeners", self.base_url, bot_id),
@@ -164,9 +164,9 @@ impl RestClient {
         page: Option<u32>,
         limit: Option<u32>,
         filter: Option<ListenerListArgs>,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         let mut url = reqwest::Url::parse(&format!("{}/bots/{}/listeners", self.base_url, bot_id))
-            .map_err(|e| ApiError::ConnectionError(format!("Invalid URL: {}", e)))?;
+            .map_err(|e| AppError::ConnectionError(format!("Invalid URL: {}", e)))?;
 
         // Add query parameters for pagination if they are provided
         if let Some(page_val) = page {
@@ -181,7 +181,7 @@ impl RestClient {
         // Serialize the filter into JSON (if provided)
         let body = filter
             .map(|f| {
-                serde_json::to_value(f).map_err(|e| ApiError::SerializationError(e.to_string()))
+                serde_json::to_value(f).map_err(|e| AppError::SerializationError(e.to_string()))
             })
             .transpose()?;
 
@@ -195,7 +195,7 @@ impl RestClient {
         &self,
         bot_id: &str,
         listener_id: &str,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::GET,
             &format!(
@@ -213,7 +213,7 @@ impl RestClient {
         bot_id: &str,
         listener_id: &str,
         update: ListenerUpdateArgs,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::PUT,
             &format!(
@@ -230,7 +230,7 @@ impl RestClient {
         &self,
         bot_id: &str,
         listener_id: &str,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::DELETE,
             &format!(
@@ -247,7 +247,7 @@ impl RestClient {
         &self,
         bot_id: &str,
         filter: Option<ListenerListArgs>,
-    ) -> Result<reqwest::Response, ApiError> {
+    ) -> Result<reqwest::Response, AppError> {
         self.send_request(
             Method::DELETE,
             &format!("{}/bots/{}/listeners", self.base_url, bot_id),

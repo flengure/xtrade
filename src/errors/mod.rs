@@ -1,6 +1,9 @@
 // src/errors/mod.rs
 pub mod api;
+pub mod app;
 pub mod server;
+
+pub use app::AppError;
 
 pub use api::ApiError;
 pub use server::ServerError;

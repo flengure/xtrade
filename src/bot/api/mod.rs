@@ -8,7 +8,7 @@ pub use crate::bot::state::input::listener::{
 };
 pub use crate::bot::state::output::bot::BotListView;
 pub use crate::bot::state::AppState;
-pub use crate::errors::ApiError;
+pub use crate::errors::AppError;
 use actix_web::web;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -30,10 +30,10 @@ pub struct ApiResponse<T> {
 /// Helper to acquire a lock on `AppState`.
 pub fn acquire_lock(
     data: &web::Data<Arc<Mutex<AppState>>>,
-) -> Result<std::sync::MutexGuard<AppState>, ApiError> {
+) -> Result<std::sync::MutexGuard<AppState>, AppError> {
     data.lock().map_err(|e| {
         log::error!("Failed to acquire lock on AppState: {}", e);
-        ApiError::InternalServerError("Failed to acquire lock on AppState".to_string())
+        AppError::InternalServerError("Failed to acquire lock on AppState".to_string())
     })
 }
 
@@ -82,14 +82,14 @@ impl Pagination {
     }
 
     /// Validate pagination parameters
-    pub fn validate(&self) -> Result<(), ApiError> {
+    pub fn validate(&self) -> Result<(), AppError> {
         if self.page().max(1) < 1 {
-            return Err(ApiError::InvalidInput(
+            return Err(AppError::InvalidInput(
                 "Page number must be greater than or equal to 1.".to_string(),
             ));
         }
         if self.limit().max(1) < 1 {
-            return Err(ApiError::InvalidInput(
+            return Err(AppError::InvalidInput(
                 "Limit must be greater than or equal to 1.".to_string(),
             ));
         }

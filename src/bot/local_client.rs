@@ -1,21 +1,22 @@
 use super::cli::OfflineCmds;
-use crate::app_config::LocalCliConfig;
-use crate::bot::state::AppState;
+use crate::app_config::AppConfig;
+use crate::app_state::AppState;
 use crate::bot::state::BotRegistry;
-use crate::errors::ApiError;
-use std::sync::{Arc, Mutex};
+use crate::errors::AppError;
+use std::path::Path;
 
 /// Handle CLI commands in offline mode
-pub async fn run(
-    args: OfflineCmds,
-    local_cli_config: LocalCliConfig,
-    state: Arc<Mutex<AppState>>,
-) -> Result<(), ApiError> {
-    // Acquire the lock on the AppState
-    let _ = local_cli_config;
-    let mut app_state = state.lock().map_err(|_| {
-        ApiError::InternalServerError("Failed to acquire lock on AppState.".to_string())
-    })?;
+pub async fn run(state_file: Option<&Path>, args: OfflineCmds) -> Result<(), AppError> {
+    // Load AppConfig
+    let mut app_config = AppConfig::load::<&Path>(None)?;
+
+    // Override the state file if provided via CLI
+    if let Some(v) = state_file {
+        app_config.local_cli.state_file = v.to_path_buf();
+    }
+
+    // Initialize the application state directly
+    let mut app_state = AppState::load(app_config.clone())?;
 
     match args {
         OfflineCmds::ClearAll { target } => match target.as_str() {
@@ -29,7 +30,7 @@ pub async fn run(
                 println!("All listeners cleared.");
                 Ok(())
             }
-            _ => Err(ApiError::InvalidInput(format!(
+            _ => Err(AppError::InvalidInput(format!(
                 "Invalid target: {}. Use 'bots' or 'listeners'.",
                 target
             ))),

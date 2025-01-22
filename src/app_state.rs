@@ -40,13 +40,14 @@
 //! - Implement an event-based state synchronization mechanism for distributed systems.
 use crate::app_config::AppConfig;
 use crate::bot::model::Bot;
-use crate::errors::ServerError;
+use crate::errors::AppError;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::ErrorKind;
 use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct AppState {
@@ -66,7 +67,8 @@ impl Default for AppState {
 }
 
 impl AppState {
-    pub fn load(app_config: AppConfig) -> Result<AppState, ServerError> {
+    /// Loads the application state from a file or creates a new blank file if it doesn't exist.
+    pub fn load(app_config: AppConfig) -> Result<AppState, AppError> {
         // Determine the file path
         let state_file = app_config.clone().api_server.state_file;
 
@@ -78,17 +80,15 @@ impl AppState {
                     "State file not found. Creating a new blank file at: {:?}",
                     state_file
                 );
-                // Create and test writeability in one step
-                fs::write(&state_file, b"{}")
-                    .and_then(|_| OpenOptions::new().write(true).open(&state_file))
-                    .map_err(|e| ServerError::FileWriteError {
-                        source: e,
-                        path: state_file.clone(),
-                    })?;
-                "{}".to_string()
+                // Create a new blank file and write "{}" to it
+                fs::write(&state_file, b"{}").map_err(|e| AppError::FileWriteError {
+                    source: e,
+                    path: state_file.clone(),
+                })?;
+                "{}".to_string() // Return an empty JSON object as content
             }
             Err(e) => {
-                return Err(ServerError::FileReadError {
+                return Err(AppError::FileReadError {
                     source: e,
                     path: state_file.clone(),
                 });
@@ -97,7 +97,7 @@ impl AppState {
 
         // Test writeability of the file
         if OpenOptions::new().write(true).open(&state_file).is_err() {
-            return Err(ServerError::FileWriteError {
+            return Err(AppError::FileWriteError {
                 source: std::io::Error::new(ErrorKind::PermissionDenied, "File not writable"),
                 path: state_file.clone(),
             });
@@ -105,9 +105,9 @@ impl AppState {
 
         // Deserialize the JSON content into `AppState`
         let mut state: AppState =
-            serde_json::from_str(&state_content).map_err(ServerError::JsonParseError)?;
+            serde_json::from_str(&state_content).map_err(AppError::JsonParseError)?;
 
-        // Update the loaded state with AppConfig and file path
+        // Update the loaded state with `AppConfig`
         state.config = app_config;
 
         info!("State loaded successfully from: {:?}", state_file);
@@ -115,23 +115,26 @@ impl AppState {
     }
 
     /// Saves the current state to a JSON file.
-    pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), ServerError> {
+    pub fn save<P: AsRef<Path>>(&self, file_path: Option<P>) -> Result<(), AppError> {
         let state_file = file_path
             .map(|p| p.as_ref().to_path_buf())
             .or_else(|| Some(self.config.api_server.state_file.clone()))
-            .ok_or(ServerError::NoFilePathProvided)?;
+            .ok_or(AppError::FileWriteError {
+                source: std::io::Error::new(ErrorKind::InvalidInput, "No file path provided"),
+                path: PathBuf::from("unknown"),
+            })?;
 
-        // Serialize the AppState to JSON
-        let state_json = serde_json::to_string_pretty(self).map_err(ServerError::JsonParseError)?;
+        // Serialize the `AppState` to JSON
+        let state_json = serde_json::to_string_pretty(self).map_err(AppError::JsonParseError)?;
 
-        // Save AppConfig
+        // Save the configuration file
         self.config.save::<&Path>(None).map_err(|e| {
             error!("Failed to save AppConfig: {}", e);
-            ServerError::ConfigError(e)
+            AppError::ConfigError(e.to_string())
         })?;
 
-        // Write the JSON to the file
-        fs::write(&state_file, state_json).map_err(|e| ServerError::FileWriteError {
+        // Write the serialized state to the file
+        fs::write(&state_file, state_json).map_err(|e| AppError::FileWriteError {
             source: e,
             path: state_file.clone(),
         })?;
