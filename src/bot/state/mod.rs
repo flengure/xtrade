@@ -74,5 +74,5 @@ pub use server::ServerStartupArgs;
 
 pub use registry::BotRegistry;
 
+pub use crate::app_state::AppState;
 pub use crate::bot::model::{Bot, Listener};
-pub use crate::state::AppState;

@@ -1,14 +1,15 @@
+use crate::app_config::AppConfig;
+use crate::app_state::AppState;
 use crate::bot::cli::{Cli, Commands};
 use crate::bot::rest::RestClient;
 use crate::bot::server;
-use crate::bot::state::AppState;
 use std::io::{Error, ErrorKind, Result};
 use std::sync::{Arc, Mutex};
 
 /// Main function to handle CLI commands and modes
-pub async fn run(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
+pub async fn run(cli: Cli, app_config: AppConfig, app_state: Arc<Mutex<AppState>>) -> Result<()> {
     match cli.mode() {
-        "server" => run_server_mode(cli, app_state).await,
+        "server" => run_server_mode(cli, app_config, app_state).await,
         "offline" => run_offline_mode(cli, app_state).await,
         "online" => run_online_mode(cli).await,
         _ => Err(Error::new(
@@ -19,9 +20,13 @@ pub async fn run(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
 }
 
 /// Handle server mode
-async fn run_server_mode(cli: Cli, app_state: Arc<Mutex<AppState>>) -> Result<()> {
+async fn run_server_mode(
+    cli: Cli,
+    app_config: AppConfig,
+    app_state: Arc<Mutex<AppState>>,
+) -> Result<()> {
     if let Commands::Server(server_args) = cli.command {
-        server::run(server_args, app_state).await?;
+        server::run(server_args, app_config, app_state).await?;
         Ok(())
     } else {
         Err(Error::new(

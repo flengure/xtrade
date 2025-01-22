@@ -1,47 +1,3 @@
-//! # Settings for App State
-//!
-//! This module defines configuration structures and utilities for managing application settings.
-//! It is a part of the global `state` module and provides tools for loading, saving, and
-//! defaulting configuration files (`config.toml`).
-//!
-//! ## Responsibilities
-//! - Manage configuration for various application components:
-//!   - API Server (`ApiServerConfig`)
-//!   - Web Client (`WebClientConfig`)
-//!   - Webhook Server (`WebhookServerConfig`)
-//!   - Remote Server (`RemoteServerConfig`)
-//!   - Local State (`LocalStateConfig`)
-//! - Load configuration from a file or create defaults when missing.
-//! - Save configuration to a file, ensuring persistence.
-//!
-//! ## Example Usage
-//! ```rust
-//! use crate::state::settings::AppConfig;
-//!
-//! // Load configuration from `config.toml` or use defaults if unavailable
-//! let config = AppConfig::load(None).expect("Failed to load configuration.");
-//!
-//! // Save configuration back to `config.toml`
-//! config.save(None).expect("Failed to save configuration.");
-//! ```
-//!
-//! ## File Format
-//! Configuration is stored in TOML format, e.g.:
-//! ```toml
-//! [api_server]
-//! port = 7762
-//! bind_address = "127.0.0.1"
-//! state_file_path = "state.json"
-//!
-//! [web_client]
-//! is_enabled = true
-//! port = 7763
-//! bind_address = "0.0.0.0"
-//! static_files_path = "src/webui/dist"
-//! ```
-//!
-//! This module integrates tightly with the global `state` management system, enabling seamless
-//! configuration and persistence for the application.
 use config::{Config, File};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -53,57 +9,55 @@ pub struct ApiServerConfig {
     /// Address to bind the API server
     pub bind_address: String,
     /// File path for the application state
-    pub state_file_path: PathBuf,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct WebClientConfig {
-    /// Whether the Web Client is enabled
-    pub is_enabled: bool,
-    /// Port number for the Web Client
-    pub port: u16,
-    /// Address to bind the Web Client
-    pub bind_address: String,
-    /// Path to the Web Client's static files
-    pub static_files_path: PathBuf,
+    pub state_file: PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct WebhookServerConfig {
-    /// Whether the Webhook Server is enabled
-    pub is_enabled: bool,
     /// Port number for the Webhook Server
     pub port: u16,
     /// Address to bind the Webhook Server
     pub bind_address: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct WebClientConfig {
+    /// Whether the Web Client is enabled
+    pub enable: bool,
+    /// Port number for the Web Client
+    pub port: u16,
+    /// Address to bind the Web Client
+    pub bind_address: String,
+    /// Path to the Web Client's static files
+    pub static_files: PathBuf,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
-pub struct RemoteServerConfig {
+pub struct RemoteCliConfig {
     /// URL of the remote server for online mode
     pub api_url: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
-pub struct LocalStateConfig {
+pub struct LocalCliConfig {
     /// File path for the local state file (offline mode)
-    pub state_file_path: PathBuf,
+    pub state_file: PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct AppConfig {
     /// Configuration for the API Server
     pub api_server: ApiServerConfig,
-    /// Configuration for the Web Client
-    pub web_client: WebClientConfig,
     /// Configuration for the Webhook Server
     pub webhook_server: WebhookServerConfig,
+    /// Configuration for the Web Client
+    pub web_client: WebClientConfig,
     /// Configuration for online mode
     //#[allow(dead_code)]
-    pub remote_server: RemoteServerConfig,
+    pub remote_cli: RemoteCliConfig,
     /// Configuration for offline mode
     //#[allow(dead_code)]
-    pub local_state: LocalStateConfig,
+    pub local_cli: LocalCliConfig,
 }
 
 impl Default for AppConfig {
@@ -112,24 +66,23 @@ impl Default for AppConfig {
             api_server: ApiServerConfig {
                 port: 7762,
                 bind_address: "127.0.0.1".to_string(),
-                state_file_path: PathBuf::from("state.json"),
-            },
-            web_client: WebClientConfig {
-                is_enabled: true,
-                port: 7763,
-                bind_address: "0.0.0.0".to_string(),
-                static_files_path: PathBuf::from("src/webui/dist"),
+                state_file: PathBuf::from("state.json"),
             },
             webhook_server: WebhookServerConfig {
-                is_enabled: true,
                 port: 7764,
                 bind_address: "0.0.0.0".to_string(),
             },
-            remote_server: RemoteServerConfig {
+            web_client: WebClientConfig {
+                enable: true,
+                port: 7763,
+                bind_address: "0.0.0.0".to_string(),
+                static_files: PathBuf::from("src/webui/dist"),
+            },
+            remote_cli: RemoteCliConfig {
                 api_url: "http://localhost:7762".to_string(),
             },
-            local_state: LocalStateConfig {
-                state_file_path: PathBuf::from("state.json"),
+            local_cli: LocalCliConfig {
+                state_file: PathBuf::from("state.json"),
             },
         }
     }
@@ -201,26 +154,22 @@ mod tests {
         assert_eq!(default_config.api_server.port, 7762);
         assert_eq!(default_config.api_server.bind_address, "127.0.0.1");
         assert_eq!(
-            default_config.api_server.state_file_path,
+            default_config.api_server.state_file,
             PathBuf::from("state.json")
         );
 
-        assert!(default_config.web_client.is_enabled);
+        assert_eq!(default_config.webhook_server.port, 7764);
+
+        assert!(default_config.web_client.enable);
         assert_eq!(default_config.web_client.port, 7763);
         assert_eq!(
-            default_config.web_client.static_files_path,
+            default_config.web_client.static_files,
             PathBuf::from("src/webui/dist")
         );
 
-        assert!(default_config.webhook_server.is_enabled);
-        assert_eq!(default_config.webhook_server.port, 7764);
-
+        assert_eq!(default_config.remote_cli.api_url, "http://localhost:7762");
         assert_eq!(
-            default_config.remote_server.api_url,
-            "http://localhost:7762"
-        );
-        assert_eq!(
-            default_config.local_state.state_file_path,
+            default_config.local_cli.state_file,
             PathBuf::from("state.json")
         );
     }
@@ -251,8 +200,8 @@ mod tests {
             loaded_config.api_server.bind_address
         );
         assert_eq!(
-            original_config.api_server.state_file_path,
-            loaded_config.api_server.state_file_path
+            original_config.api_server.state_file,
+            loaded_config.api_server.state_file
         );
     }
 
