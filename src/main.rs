@@ -5,17 +5,16 @@ mod bot;
 mod errors;
 mod utils;
 
-//use crate::errors::map_to_io_error;
-// use crate::utils::logging::setup_logger;
-// use clap::Parser;
 use crate::app_config::AppConfig;
 use crate::app_state::AppState;
+use crate::errors::map_to_io_error;
 use crate::utils::logging::setup_logger;
+use clap::Parser;
 use dotenv::dotenv;
 //use errors::ServerError;
 use log::error;
 use std::path::Path;
-//use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -34,18 +33,18 @@ async fn main() -> std::io::Result<()> {
     };
 
     // Proceed with the rest of the application
-    println!("{:?}", &app_config);
+    // println!("{:?}", &app_config);
 
-    // // Try to load AppState from a file or fall back to the default state
-    // let app_state = Arc::new(Mutex::new(
-    //     AppState::load(app_config).map_err(map_to_io_error)?,
-    // ));
+    // Try to load AppState from a file or fall back to the default state
+    let app_state = Arc::new(Mutex::new(
+        AppState::load(app_config).map_err(map_to_io_error)?,
+    ));
 
     // // Proceed with the rest of the application
-    // println!("{:?}", &app_state);
+    println!("{:?}", &app_state);
 
+    // let cli = bot::cli::Cli::parse();
     Ok(())
-    //let cli = bot::cli::Cli::parse();
     //let log_level = cli.log_level();
     //setup_logger(log_level).expect("Failed to initialize logger");
     //dotenv().ok();

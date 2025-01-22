@@ -1,0 +1,20 @@
+[api_server]
+port = 7762
+bind_address = "127.0.0.1"
+state_file = "state.json"
+
+[webhook_server]
+port = 7764
+bind_address = "0.0.0.0"
+
+[web_client]
+enable = true
+port = 7763
+bind_address = "0.0.0.0"
+static_files = "src/webui/dist"
+
+[remote_cli]
+api_url = "http://localhost:7762"
+
+[local_cli]
+state_file = "state.json"
